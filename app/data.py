@@ -4,24 +4,52 @@ from config import config
 import urllib
 import re
 from pyquery import PyQuery as pq
+
 from mysql import mysql
+import translator
 
 def resolveWord(word):
 	"""Attempts to find a good translation for the word"""
 	
-	#step 1: hit our cache to see if we have the word already translated
-	cache = cacher(word)
-	if (config.getboolean("deutsch", "enable.cache") and cache.exists()):
-		return cache.get()
+	#step 1: run a lookup for common german stuff that we already know
+	local = lookup(word)
+	if (local.exists()):
+		return local.get()
 
-	#step 2: if it's not in our cache, check to see if it's just a word (ie. not a compound)
-	scrape = scraper(word, cache)
-	if (config.getboolean("deutsch", "enable.scrape") and scrape.exists()):
-		return scrape.get()
-
-	#step 3: we couldn't find it, so run some of the harder stuff against it
+	#step 2: we couldn't find it, so run some of the harder stuff against it
+	translator.setQuery(word)
+	if (config.getboolean("deutsch", "enable.translator") and translator.canTranslate()):
+		return translator.translate()
 	
-	#step 4: if we still can't find it, it's not a word...
+	#step 3: if we still can't find it, it's not a word...
+	return ()
+
+class lookup(object):
+	def __init__(self, word):
+		self.cache = cacher(word)
+		self.scrape = scraper(word, self.cache)
+	
+	def exists(self):
+		#step 1: hit our cache to see if we have the word already translated
+		self.cacheExists = config.getboolean("deutsch", "enable.cache") and self.cache.exists()
+		
+		#don't hit the internet unless we absolutely need to
+		#im not sure if I should also not hit the interwebs if found=0 -- in the future, if a definition is added
+		#this would prevent me from hitting the net, so for now, I'm going to let it continue to hit the site on
+		#every miss, and then go from there
+		if (not self.cacheExists):
+			#step 2: if it's not in our cache, check to see if we can locate it online
+			self.scrapeExists = config.getboolean("deutsch", "enable.scrape") and self.scrape.exists()
+		
+		return self.cacheExists or self.scrapeExists
+		
+	def get(self):
+		if (self.cacheExists):
+			return self.cache.get()
+		elif (self.scrapeExists):
+			return self.scrape.get()
+		else:
+			return () #if the programmer does something stupid, just return an empty set
 
 class data(object):
 	def __init__(self):
@@ -37,9 +65,9 @@ class cacher(data):
 		self.word = word
 	
 	def exists(self):
-		"""Checks to see if we have a cache of the words"""
+		"""Checks to see if we have a cache of the word"""
 		
-		return self.db.query('SELECT 1 FROM `searches` WHERE `text`=%s;', self.word)
+		return bool(self.db.query('SELECT 1 FROM `searches` WHERE `text`=%s AND `found`=1;', self.word))
 	
 	def get(self):
 		"""Gets a list of words from the cache based on the search"""
@@ -58,10 +86,17 @@ class cacher(data):
 			return
 		
 		#first, save our search -- this is what we check to see if exists()
-		self.db.query('INSERT INTO `searches` SET `text`=%s;', self.word)
+		self.db.query("""
+			INSERT INTO `searches`
+			SET
+				`text`=%s,
+				`found`=%s
+			;
+			""",
+			(self.word, bool(len(words) > 1))
+		)
 		
 		for w in words:
-			print w.translations
 			self.db.query("""
 				INSERT INTO `words`
 				SET
@@ -74,6 +109,62 @@ class cacher(data):
 				(w["en"], w["en-ext"], w["de"], w["de-ext"])
 			)
 
+class scraper(data):
+	"""Controls access to words on the interwebs"""
+	
+	searchRan = False
+	
+	def __init__(self, w, cacher):
+		super(scraper, self).__init__()
+		self.word = word(word = w)
+		self.cacher = cacher
+	
+	def __isWord(self, word, row):
+		"""Given a word, tests if it is actually the word we are looking for.
+		
+		Online, there will be some definitions like this (eg. for "test"):
+			test - to pass a test, to carry out a test, and etc
+		
+		We are only concerned with the actual word, "test", so we ignore all the others."""
+		
+		if (row.get("en") == word or row.get("de") == word):
+			return True
+		
+		return False
+	
+	def get(self):
+		"""Grabs our cache of the last search"""
+		
+		self.__search()
+		return self.translations
+	
+	def __search(self):
+		"""Checks the interwebs to see if the word can be found there"""
+		
+		if (self.searchRan):
+			return
+		
+		self.searchRan = True
+		
+		searchKey = self.word.get("word")
+		
+		d = pq(url='http://dict.leo.org/ende?lp=ende&lang=de&searchLoc=0&cmpType=relaxed&sectHdr=on&spellToler=on&search=%s&relink=on' % urllib.quote(searchKey))
+		
+		#todo - We're going to have to branch here for sentences / phrases vs words
+		
+		rows = [word(en = pq(row[1]), de = pq(row[3])) for row in d.find("tr[valign=top]")]
+		
+		self.translations = [row for row in rows if self.__isWord(searchKey, row)]
+		
+		#and cache this search
+		self.cacher.stash(self.translations)
+	
+	def exists(self):
+		"""Sees if the given word can be found online"""
+		
+		self.__search()
+		return (len(self.translations) > 0)
+
 class word:
 	extended = False
 	
@@ -85,7 +176,7 @@ class word:
 	
 	#words that can have a space before or after to remove
 	#and stupid python 2.* requires unicode strings for anything fun...ugh
-	egalSpace = ["bis", "durch", "entland", u"für", "gegen", "ohne", "um", "aus", "ausser",
+	egalSpace = ["bis", "durch", "entlang", u"für", "gegen", "ohne", "um", "aus", "ausser",
 		u"außer", "bei", "beim", u"gegenüber", "mit", "nach", "seit", "von", "zu",
 		"an", "auf", "hinter", "in", "neben", u"über", "unter", "vor", "zwischen",
 		"statt", "anstatt", "ausserhalb", u"außerhalb", "trotz", u"während", "wegen"
@@ -178,59 +269,3 @@ class word:
 			word = word[:loc]
 		
 		return word.strip("-").strip()
-
-class scraper(data):
-	"""Controls access to words on the interwebs"""
-	
-	searchRan = False
-	
-	def __init__(self, w, cacher):
-		super(scraper, self).__init__()
-		self.word = word(word = w)
-		self.cacher = cacher
-	
-	def __isWord(self, word, row):
-		"""Given a word, tests if it is actually the word we are looking for.
-		
-		Online, there will be some definitions like this (eg. for "test"):
-			test - to pass a test, to carry out a test, and etc
-		
-		We are only concerned with the actual word, "test", so we ignore all the others."""
-		
-		if (row.get("en") == word or row.get("de") == word):
-			return True
-		
-		return False
-	
-	def get(self):
-		"""Grabs our cache of the last search"""
-		
-		self.__search()
-		return self.translations
-	
-	def __search(self):
-		"""Checks the interwebs to see if the word can be found there"""
-		
-		if (self.searchRan):
-			return
-		
-		self.searchRan = True
-		
-		searchKey = self.word.get("word")
-		
-		d = pq(url='http://dict.leo.org/ende?lp=ende&lang=de&searchLoc=0&cmpType=relaxed&sectHdr=on&spellToler=on&search=%s&relink=on' % urllib.quote(searchKey))
-		
-		#todo - We're going to have to branch here for sentences / phrases vs words
-		
-		rows = [word(en = pq(row[1]), de = pq(row[3])) for row in d.find("tr[valign=top]")]
-		
-		self.translations = [row for row in rows if self.__isWord(searchKey, row)]
-		
-		#and cache this search
-		self.cacher.stash(self.translations)
-	
-	def exists(self):
-		"""Sees if the given word can be found online"""
-		
-		self.__search()
-		return (len(self.translations) > 0)

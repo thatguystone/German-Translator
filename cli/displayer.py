@@ -11,35 +11,32 @@ def showExtended(option, opt, value, parser):
 def printTable(table):
 	"""Given a list of dictionaries, prints out a nice table of it all"""
 	
-	enKey = 'en-ext' if extended else 'en'
-	deKey = 'de-ext' if extended else 'de'
-	
 	colWidths = dict()
 	
-	#put in our headers for width calculations
-	table.insert(0, {
-		'en': 'English',
-		'en-ext': 'English',
-		'de': 'Deutsch',
-		'de-ext': 'Deutsch'
-	})
-	
 	#i'm assuming that each dictionary has the same keys
-	for col in table[0].keys():
+	for col in ["en", "de"]:
 		colWidths[col] = max([len(unicode(row[col])) for row in table])
 	
-	#remove the headers
-	table.pop(0)
+	#cheap hack...meh...this isn't going to be used for long anyway
+	if (colWidths["en"] < 7):
+		colWidths["en"] = 7
+	if (colWidths["de"] < 7):
+		colWidths["de"] = 7
 	
 	#print the headers, in the center of the column
-	print "English".center(colWidths[enKey] + 2), "Deutsch".center(colWidths[deKey])
+	print "English".center(colWidths["en"] + 2), "Deutsch".center(colWidths["de"])
 	
 	#print the results
 	for row in table:
-		print row[enKey].ljust(colWidths[enKey] + 2), row[deKey].ljust(colWidths[deKey])
-	
+		print row["en"].ljust(colWidths["en"] + 2), row["de"].ljust(colWidths["de"])
+
+import types
 def showResults(word, results):
 	"""Prints out some nice stuff for the translations"""
 	
 	print "Searched word: %s" % word, "\n"
-	printTable(results)
+	
+	if (type(results) == types.NoneType or len(results) == 0):
+		print "There were no words found"
+	else:
+		printTable(results)

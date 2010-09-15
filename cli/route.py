@@ -1,5 +1,4 @@
-from app import cache
-from app import scrape
+from app import data
 import displayer
 
 from optparse import OptionParser
@@ -14,27 +13,15 @@ class router:
 		
 		word = raw_input("Enter the word to translate: ")
 		
-		cacher = cache.cacher()
-		scraper = scrape.scraper()
+		displayer.showResults(word, data.resolveWord(word))
 		
-		#step 1: hit our cache to see if we have the word already translated
-		if (cacher.exists(word)):
-			displayer.showResults(word, cacher.get(word))
-
-		#step 2: if it's not in our cache, check to see if it's just a word (ie. not a compound)
-		displayer.showResults(word, scraper.exists(word))
-
-		#step 3: we couldn't find it, so run some of the harder stuff against it
-		
-		#step 4: if we still can't find it, it's not a word...
-
 	def setupOptions(self):
 		"""Contains the command line option parser"""
 		
 		parser = OptionParser()
 		
 		parser.add_option("-e", "--extended-results",
-			action="callback", callback=displayer.showExtended,
+			action="callback", callback=data.word.showExtended,
 			help="print out extended results (includes things like \"to\" and \"der/die/das\")"
 		)
 		

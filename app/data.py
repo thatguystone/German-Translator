@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from config import config
 import urllib
 import re
@@ -9,12 +11,12 @@ def resolveWord(word):
 	
 	#step 1: hit our cache to see if we have the word already translated
 	cache = cacher(word)
-	if (config.get("deutsch", "enable.cache") and cache.exists()):
+	if (config.getboolean("deutsch", "enable.cache") and cache.exists()):
 		return cache.get()
 
 	#step 2: if it's not in our cache, check to see if it's just a word (ie. not a compound)
 	scrape = scraper(word, cache)
-	if (config.get("deutsch", "enable.scrape") and scrape.exists()):
+	if (config.getboolean("deutsch", "enable.scrape") and scrape.exists()):
 		return scrape.get()
 
 	#step 3: we couldn't find it, so run some of the harder stuff against it
@@ -52,6 +54,9 @@ class cacher(data):
 	def stash(self, words):
 		"""Saves the list of words retrieved from the internet to our cache"""
 		
+		if (not config.getboolean("deutsch", "enable.cache")):
+			return
+		
 		#first, save our search -- this is what we check to see if exists()
 		self.db.query('INSERT INTO `searches` SET `text`=%s;', self.word)
 		
@@ -71,6 +76,20 @@ class cacher(data):
 
 class word:
 	extended = False
+	
+	#words that need a space after them in order to be removed
+	spaceWords = ["der", "die", "das", "to", "zu", "zur", "zum"]
+	
+	#words to always remove
+	unspacedWords = ["sth.", "etw.", "jmdm.", "jmdn.", "so."]
+	
+	#words that can have a space before or after to remove
+	#and stupid python 2.* requires unicode strings for anything fun...ugh
+	egalSpace = ["bis", "durch", "entland", u"für", "gegen", "ohne", "um", "aus", "ausser",
+		u"außer", "bei", "beim", u"gegenüber", "mit", "nach", "seit", "von", "zu",
+		"an", "auf", "hinter", "in", "neben", u"über", "unter", "vor", "zwischen",
+		"statt", "anstatt", "ausserhalb", u"außerhalb", "trotz", u"während", "wegen"
+	]
 	
 	def __init__(self, **words):
 		self.translations = dict()
@@ -142,12 +161,16 @@ class word:
 			word = word[:loc]
 		
 		#get rid of the extra words that aren't needed but that could possibly conflict with strings inside other words (so give them a trailing space)
-		for w in ["der", "die", "das", "to"]:
-			word = word.replace(w + " ", "")
+		for w in self.spaceWords:
+			word = word.replace(w + " ", "").strip()
 		
 		#and the words that aren't needed and can't conflict with other words
-		for w in ["sth.", "etw."]:
-			word = word.replace(w, "")	
+		for w in self.unspacedWords:
+			word = word.replace(w, "").strip()
+		
+		#now, let's lose the hanging words that just get in the way
+		for w in self.egalSpace:
+			word = word.replace(w + " ", "").replace(" " + w, "").strip()
 		
 		#remove anything following a "|"
 		loc = word.find("|")

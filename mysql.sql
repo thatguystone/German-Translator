@@ -28,7 +28,7 @@ CREATE TABLE `searches` (
   `found` tinyint(1) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `text` (`text`,`found`)
-) ENGINE=MyISAM AUTO_INCREMENT=3 DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM AUTO_INCREMENT=6 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -44,10 +44,11 @@ CREATE TABLE `words` (
   `en-ext` varchar(200) NOT NULL,
   `de` varchar(200) NOT NULL,
   `de-ext` varchar(200) NOT NULL,
+  `pos` enum('adjadv','noun','prep','verb') NOT NULL COMMENT 'Not piece of shit -- part of speech',
   PRIMARY KEY (`id`),
   KEY `en` (`en`),
   KEY `de` (`de`)
-) ENGINE=MyISAM AUTO_INCREMENT=34 DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM AUTO_INCREMENT=49 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
@@ -59,4 +60,4 @@ CREATE TABLE `words` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2010-09-14 23:55:32
+-- Dump completed on 2010-09-18 17:11:16

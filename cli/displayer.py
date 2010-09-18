@@ -15,7 +15,7 @@ def printTable(table):
 	
 	#i'm assuming that each dictionary has the same keys
 	for col in ["en", "de"]:
-		colWidths[col] = max([len(unicode(row[col])) for row in table])
+		colWidths[col] = max([len(row[col]) for row in table])
 	
 	#cheap hack...meh...this isn't going to be used for long anyway
 	if (colWidths["en"] < 7):

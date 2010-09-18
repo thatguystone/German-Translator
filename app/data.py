@@ -12,26 +12,26 @@ def resolveWord(word):
 	"""Attempts to find a good translation for the word"""
 	
 	#step 1: run a lookup for common german stuff that we already know
-	local = lookup(word)
+	local = lookuper(word)
 	if (local.exists()):
 		return local.get()
 
 	#step 2: we couldn't find it, so run some of the harder stuff against it
 	translator.setQuery(word)
-	if (config.getboolean("deutsch", "enable.translator") and translator.canTranslate()):
+	if (translator.canTranslate()):
 		return translator.translate()
 	
-	#step 3: if we still can't find it, it's not a word...
+	#step 3: if we still can't find it, it just doesn't exist...
 	return ()
 
-class lookup(object):
+class lookuper(object):
 	def __init__(self, word):
 		self.cache = cacher(word)
 		self.scrape = scraper(word, self.cache)
 	
 	def exists(self):
 		#step 1: hit our cache to see if we have the word already translated
-		self.cacheExists = config.getboolean("deutsch", "enable.cache") and self.cache.exists()
+		self.cacheExists = self.cache.exists()
 		
 		#don't hit the internet unless we absolutely need to
 		#im not sure if I should also not hit the interwebs if found=0 -- in the future, if a definition is added
@@ -39,7 +39,7 @@ class lookup(object):
 		#every miss, and then go from there
 		if (not self.cacheExists):
 			#step 2: if it's not in our cache, check to see if we can locate it online
-			self.scrapeExists = config.getboolean("deutsch", "enable.scrape") and self.scrape.exists()
+			self.scrapeExists = self.scrape.exists()
 		
 		return self.cacheExists or self.scrapeExists
 		
@@ -64,10 +64,9 @@ class cacher(data):
 		super(cacher, self).__init__()
 		self.word = word
 	
-	def exists(self):
+	def exists(self, found = 1):
 		"""Checks to see if we have a cache of the word"""
-		
-		return bool(self.db.query('SELECT 1 FROM `searches` WHERE `text`=%s AND `found`=1;', self.word))
+		return config.getboolean("deutsch", "enable.cache") and self.db.query('SELECT 1 FROM `searches` WHERE `text`=%s AND `found`=%s;', (self.word, found))
 	
 	def get(self):
 		"""Gets a list of words from the cache based on the search"""
@@ -85,6 +84,9 @@ class cacher(data):
 		if (not config.getboolean("deutsch", "enable.cache")):
 			return
 		
+		if ((self.exists(0) and len(words) == 0) or self.exists(1)):
+			return
+		
 		#first, save our search -- this is what we check to see if exists()
 		self.db.query("""
 			INSERT INTO `searches`
@@ -97,26 +99,44 @@ class cacher(data):
 		)
 		
 		for w in words:
-			self.db.query("""
-				INSERT INTO `words`
-				SET
-					`en`=%s,
-					`en-ext`=%s,
-					`de`=%s,
+			info = (w["en"], w["en-ext"], w["de"], w["de-ext"], w["pos"])
+			
+			sql = """
+				SELECT 1 FROM `words`
+				WHERE
+					`en`=%s
+					AND
+					`en-ext`=%s
+					AND
+					`de`=%s
+					AND
 					`de-ext`=%s
-				;
-				""",
-				(w["en"], w["en-ext"], w["de"], w["de-ext"])
-			)
+					AND
+					`pos`=%s
+			"""
+			#only insert the row if it doesn't exist already (from another lookup)
+			if (not self.db.query(sql, info)):
+				self.db.query("""
+					INSERT INTO `words`
+					SET
+						`en`=%s,
+						`en-ext`=%s,
+						`de`=%s,
+						`de-ext`=%s,
+						`pos`=%s
+					;
+					""",
+					info
+				)
 
 class scraper(data):
 	"""Controls access to words on the interwebs"""
 	
 	searchRan = False
 	
-	def __init__(self, w, cacher):
+	def __init__(self, word, cacher):
 		super(scraper, self).__init__()
-		self.word = word(word = w)
+		self.word = word.encode('utf-8')
 		self.cacher = cacher
 	
 	def __isWord(self, word, row):
@@ -146,7 +166,7 @@ class scraper(data):
 		
 		self.searchRan = True
 		
-		searchKey = self.word.get("word")
+		searchKey = self.word
 		
 		d = pq(url='http://dict.leo.org/ende?lp=ende&lang=de&searchLoc=0&cmpType=relaxed&sectHdr=on&spellToler=on&search=%s&relink=on' % urllib.quote(searchKey))
 		
@@ -163,7 +183,7 @@ class scraper(data):
 		"""Sees if the given word can be found online"""
 		
 		self.__search()
-		return (len(self.translations) > 0)
+		return config.getboolean("deutsch", "enable.scrape") and (len(self.translations) > 0)
 
 class word:
 	extended = False
@@ -205,11 +225,25 @@ class word:
 		for k, v in words.iteritems():
 			#since we accept both string and pyquery, we have to clean both
 			if (type(v) == pq):
-				self.translations[k + "-ext"] = v.text()
+				self.translations[k + "-ext"] = v.text().encode('utf-8')
 			else:
-				self.translations[k + "-ext"] = v
+				self.translations[k + "-ext"] = v.encode('utf-8')
 			
-			self.translations[k] = self.__cleanWord(v)
+			self.translations[k] = self.__cleanWord(v).encode('utf-8')
+		
+		#find out the part of speech of this one
+		de = self.translations["de-ext"]
+		en = self.translations["en-ext"]
+		if (en.find("prep.") >= 0):
+			pos = "prep"
+		elif (en.find("to ") >= 0):
+			pos = "verb"
+		elif (de.find("der") >= 0 or de.find("die") >= 0 or de.find("das") >= 0):
+			pos = "noun"
+		else:
+			pos = "adjadv"
+		
+		self.translations["pos"] = pos	
 	
 	@classmethod
 	def showExtended(cls, option, opt, value, parser):

@@ -52,6 +52,8 @@ class mysql(object):
 			
 			if (len(ret) == 0):
 				ret = False
+			elif (len(ret) == 1 and ret[0]["1"] == 1L): #special case for if we do a SELECT 1 FROM ... statement
+				ret = True
 		
 		cn.close()
 		return ret

@@ -1,3 +1,5 @@
+from config import config
+
 #what we are attempting to translate
 query = ""
 
@@ -10,7 +12,7 @@ def setQuery(q):
 def canTranslate():
 	"""A basic check to see if we actually know how to translate the query"""
 	
-	return sentenceFigurer.canTranslate(query) or wordFigurer.canTranslate(query)
+	return config.getboolean("deutsch", "enable.translator") and (sentenceFigurer.canTranslate(query) or wordFigurer.canTranslate(query))
 
 def translate():
 	"""Does the actual translation"""
@@ -31,10 +33,32 @@ class sentenceFigurer(figurer):
 	def canTranslate(cls, query):
 		"""A basic checker to see if it's even worthwhile running this on the query"""
 		
-		return (len(query.split(" ")) > 1)
+		return (query.find("*") > 0 and len(query.split(" ")) > 1)
 	
 	def translate(self):
-		print "sentence"
+		"""Assumes we can translate it, then runs a sentence guesser on it"""
+		
+		#start off by getting the different words in the sentence
+		words = self.query.replace("-", "").split(" ") #combine dashed-words into one word for easier access
+		
+		#let's find which word they're asking about
+		for w, i in zip(words, range(len(words))):
+			if (w.find("*") >= 0):
+				word = w
+				index = i
+				break
+		
+		#if we didn't find a word to figure out
+		if (not "word" in locals()):
+			print "\nError: No word for translation was specified\n"
+			return ()
+		
+		#let's remove all the stars and start figuring out what we're looking at
+		words = [w.replace("*", "") for w in words]
+		
+		print words, index
+		
+		return ()
 
 class wordFigurer(figurer):
 	@classmethod

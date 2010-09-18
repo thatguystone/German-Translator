@@ -11,7 +11,7 @@ class router:
 		
 		self.setupOptions()
 		
-		word = raw_input("Enter the word to translate: ").decode('utf-8')
+		word = raw_input("Enter the word to translate: ")
 		
 		displayer.showResults(word, data.resolveWord(word))
 		

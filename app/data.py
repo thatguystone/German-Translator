@@ -150,7 +150,7 @@ class scraper(data):
 	
 	def __init__(self, word, cacher):
 		super(scraper, self).__init__()
-		self.word = word.encode('utf-8')
+		self.word = word
 		self.cacher = cacher
 	
 	def __isWord(self, word, row):
@@ -230,12 +230,13 @@ class word:
 		#get rid of our id row, prepare for easy transition to new dictionary format
 		del row["id"]
 		
-		#and save our dictionary
+		#and save our dictionary (everything from the database is already utf8)
 		self.translations = row
 
 	def createWordFromPq(self, words):
 		"""Given a pyquery object, creates and cleans up the translations"""
 		
+		#be sure everything we accept is encoded in utf8 -- otherwise, our compares get screwed up
 		for k, v in words.iteritems():
 			#since we accept both string and pyquery, we have to clean both
 			if (type(v) == pq):

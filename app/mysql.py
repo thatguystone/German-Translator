@@ -37,15 +37,30 @@ class mysql(object):
 		
 		return cls.__instance
 	
+	def insert(self, sql, args = ()):
+		"""Special method for insert statements only.
+		
+		There is a bug that causes the mysql driver for python to return a number for
+		conn.insert_id() after an insert has been done.  To avoid returning
+		the last insert id for every row queried after an insert, I broke it off into its
+		own function."""
+		
+		res = self.query(sql, args)
+		
+		if (self.__db.insert_id() != 0 and bool(res)):
+			ret = self.__db.insert_id()
+		else:
+			ret = False
+		
+		return ret
+	
 	def query(self, sql, args = ()):
 		"""Runs a query against the database"""
 		cn = MySQLdb.cursors.DictCursor(self.__db)
 		
 		suc = cn.execute(sql, args)
 		
-		if (self.__db.insert_id() != 0 and suc):
-			ret = self.__db.insert_id()
-		elif (not suc):
+		if (not suc):
 			ret = False
 		else:
 			ret = cn.fetchall()

@@ -12,7 +12,7 @@ def resolveWord(word):
 	"""Attempts to find a good translation for the word"""
 	
 	#step 1: run a lookup for common german stuff that we already know
-	local = lookuper(word)
+	local = lookup(word)
 	if (local.exists()):
 		return local.get()
 
@@ -24,7 +24,7 @@ def resolveWord(word):
 	#step 3: if we still can't find it, it just doesn't exist...
 	return ()
 
-class lookuper(object):
+class lookup(object):
 	def __init__(self, word):
 		self.cache = cacher(word)
 		self.scrape = scraper(word, self.cache)
@@ -42,8 +42,22 @@ class lookuper(object):
 			self.scrapeExists = self.scrape.exists()
 		
 		return self.cacheExists or self.scrapeExists
+	
+	def isAdjAdv(self):
+		return self.__isA("adjadv")
+	
+	def isNoun(self):
+		return self.__isA("noun")
+	
+	def __isA(self, pos):
+		words = self.get()
+		if (len(words) == 0):
+			return False
 		
+		return bool(len([w for w in words if w["pos"] == pos]) > 0)
+	
 	def get(self):
+		self.exists() #force the word to load itself
 		if (self.cacheExists):
 			return self.cache.get()
 		elif (self.scrapeExists):
@@ -88,7 +102,7 @@ class cacher(data):
 			return
 		
 		#first, save our search -- this is what we check to see if exists()
-		self.db.query("""
+		self.db.insert("""
 			INSERT INTO `searches`
 			SET
 				`text`=%s,
@@ -115,7 +129,7 @@ class cacher(data):
 					`pos`=%s
 			"""
 			#only insert the row if it doesn't exist already (from another lookup)
-			if (not self.db.query(sql, info)):
+			if (not self.db.insert(sql, info)):
 				self.db.query("""
 					INSERT INTO `words`
 					SET

@@ -1,4 +1,5 @@
 from config import config
+import data
 
 #what we are attempting to translate
 query = ""
@@ -44,21 +45,26 @@ class sentenceFigurer(figurer):
 		#let's find which word they're asking about
 		for w, i in zip(words, range(len(words))):
 			if (w.find("*") >= 0):
-				word = w
 				index = i
 				break
 		
 		#if we didn't find a word to figure out
-		if (not "word" in locals()):
+		if (not "index" in locals()):
 			print "\nError: No word for translation was specified\n"
 			return ()
 		
 		#let's remove all the stars and start figuring out what we're looking at
-		words = [w.replace("*", "") for w in words]
+		words = [data.lookup(w.replace("*", "")) for w in words]
 		
-		print words, index
-		
-		return ()
+		#we can't do much for translating
+		#adjectives/adverbs/nouns (if it's a compound in a sentence, it will be recursively resolved
+		#through lookup), so just return their translations
+		if (words[index].isAdjAdv() or words[index].isNoun()): 
+			ret = words[index].get()
+		else:
+			print "here"
+			
+		return ret
 
 class wordFigurer(figurer):
 	@classmethod

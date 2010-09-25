@@ -16,6 +16,53 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
+-- Table structure for table `canooWords`
+--
+
+DROP TABLE IF EXISTS `canooWords`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `canooWords` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `full` varchar(50) NOT NULL,
+  `stem` varchar(50) NOT NULL COMMENT 'Equal to third person',
+  `preterite` varchar(50) NOT NULL,
+  `hilfsverb` enum('haben','sein') NOT NULL,
+  `perfect` varchar(50) NOT NULL,
+  `third` varchar(50) NOT NULL,
+  `subj2` varchar(50) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `full` (`full`,`hilfsverb`),
+  KEY `stem` (`stem`),
+  KEY `preterite` (`preterite`),
+  KEY `hilfsverb` (`hilfsverb`),
+  KEY `perfect` (`perfect`),
+  KEY `third` (`third`),
+  KEY `subj2` (`subj2`)
+) ENGINE=MyISAM AUTO_INCREMENT=3 DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `leoWords`
+--
+
+DROP TABLE IF EXISTS `leoWords`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `leoWords` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `en` varchar(200) NOT NULL,
+  `en-ext` varchar(200) NOT NULL,
+  `de` varchar(200) NOT NULL,
+  `de-ext` varchar(200) NOT NULL,
+  `pos` enum('adjadv','noun','prep','verb') NOT NULL COMMENT 'Not piece of shit -- part of speech',
+  PRIMARY KEY (`id`),
+  KEY `en` (`en`),
+  KEY `de` (`de`)
+) ENGINE=MyISAM AUTO_INCREMENT=79 DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `searches`
 --
 
@@ -26,29 +73,10 @@ CREATE TABLE `searches` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `text` varchar(150) NOT NULL,
   `found` tinyint(1) NOT NULL,
+  `type` enum('LEO','Canoo') NOT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `text` (`text`,`found`)
-) ENGINE=MyISAM AUTO_INCREMENT=9 DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `words`
---
-
-DROP TABLE IF EXISTS `words`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `words` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `en` varchar(200) NOT NULL,
-  `en-ext` varchar(200) NOT NULL,
-  `de` varchar(200) NOT NULL,
-  `de-ext` varchar(200) NOT NULL,
-  `pos` enum('adjadv','noun','prep','verb') NOT NULL COMMENT 'Not piece of shit -- part of speech',
-  PRIMARY KEY (`id`),
-  KEY `en` (`en`),
-  KEY `de` (`de`)
-) ENGINE=MyISAM AUTO_INCREMENT=55 DEFAULT CHARSET=utf8;
+  UNIQUE KEY `text` (`text`,`found`,`type`)
+) ENGINE=MyISAM AUTO_INCREMENT=27 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
@@ -60,4 +88,4 @@ CREATE TABLE `words` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2010-09-18 19:14:45
+-- Dump completed on 2010-09-25 19:45:36

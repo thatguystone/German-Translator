@@ -9,9 +9,12 @@ class router:
 	def go(self):
 		"""Routes the command through the application"""
 		
-		self.setupOptions()
+		(opts, args) = self.setupOptions()
 		
-		word = raw_input("Enter the word to translate: ")
+		if (opts.word == None):
+			word = raw_input("Enter the word to translate: ")
+		else:
+			word = opts.word
 		
 		displayer.showResults(word, data.resolveWord(word))
 		
@@ -25,4 +28,9 @@ class router:
 			help="print out extended results (includes things like \"to\" and \"der/die/das\")"
 		)
 		
-		(options, args) = parser.parse_args()
+		parser.add_option("-w", "--word",
+			action="store", type="string", dest="word",
+			help="the word to translate (if not entered, will prompt)"
+		)
+		
+		return parser.parse_args()

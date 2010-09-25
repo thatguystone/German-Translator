@@ -56,13 +56,23 @@ class sentenceFigurer(figurer):
 		#let's remove all the stars and start figuring out what we're looking at
 		words = [data.lookup(w.replace("*", "")) for w in words]
 		
-		#we can't do much for translating
-		#adjectives/adverbs/nouns (if it's a compound in a sentence, it will be recursively resolved
-		#through lookup), so just return their translations
-		if (words[index].isAdjAdv() or words[index].isNoun()): 
-			ret = words[index].get()
+		#let's remove the word we're focusing on
+		focus = words[index]
+		words.pop(index)
+		
+		#we can't do much for translating nouns, so just return their translations (and if it's compound,
+		#it will be resolved via the lookup)
+		if (1 == 2 and focus.isNoun()): 
+			ret = focus.get()
 		else:
-			print "here"
+			verb = data.canoo(focus.getWord())
+			word = verb.get()
+			
+			#if it's an adj/adv, it might be a verb, so let's run a check on that.
+			isAdv = focus.isAdjAdv()
+			isVerb = focus.isVerb()
+				
+			ret = ()
 			
 		return ret
 

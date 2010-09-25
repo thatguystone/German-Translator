@@ -4,6 +4,7 @@ from config import config
 import urllib
 import re
 from pyquery import PyQuery as pq
+import time
 
 from mysql import mysql
 import translator
@@ -24,30 +25,39 @@ def resolveWord(word):
 	#step 3: if we still can't find it, it just doesn't exist...
 	return ()
 
-class lookup(object):
-	def __init__(self, word):
-		self.cache = cacher(word)
-		self.scrape = scraper(word, self.cache)
+class data(object):
+	def __init__(self):
+		self.db = mysql.getInstance()
+
+#####################################################
+#####################  Info  ########################
+#####################################################
+###  The following are the classes that function  ###
+###         on local/internet words               ###
+#####################################################
+
+class lookup(data):
+	"""Controls access to words on the interwebs. Contains a collection of individual words."""
 	
-	def exists(self):
-		#step 1: hit our cache to see if we have the word already translated
-		self.cacheExists = self.cache.exists()
-		
-		#don't hit the internet unless we absolutely need to
-		#im not sure if I should also not hit the interwebs if found=0 -- in the future, if a definition is added
-		#this would prevent me from hitting the net, so for now, I'm going to let it continue to hit the site on
-		#every miss, and then go from there
-		if (not self.cacheExists):
-			#step 2: if it's not in our cache, check to see if we can locate it online
-			self.scrapeExists = self.scrape.exists()
-		
-		return self.cacheExists or self.scrapeExists
+	searchRan = False
+	
+	def __init__(self, word):
+		super(lookup, self).__init__()
+		self.word = word
+		self.cache = cacher(word)
 	
 	def isAdjAdv(self):
 		return self.__isA("adjadv")
 	
 	def isNoun(self):
 		return self.__isA("noun")
+	
+	def isVerb(self):
+		isVerb = self.__isA("verb")
+		
+		#we have to be a bit more thorough since we might have gotten a conjugated verb,
+		#which can be confused for an adj/adv
+		
 	
 	def __isA(self, pos):
 		words = self.get()
@@ -56,19 +66,61 @@ class lookup(object):
 		
 		return bool(len([w for w in words if w["pos"] == pos]) > 0)
 	
-	def get(self):
-		self.exists() #force the word to load itself
-		if (self.cacheExists):
-			return self.cache.get()
-		elif (self.scrapeExists):
-			return self.scrape.get()
-		else:
-			return () #if the programmer does something stupid, just return an empty set
-
-class data(object):
-	def __init__(self):
-		self.db = mysql.getInstance()
+	def __isWord(self, word, row):
+		"""Given a word, tests if it is actually the word we are looking for.
+		
+		Online, there will be some definitions like this (eg. for "test"):
+			test - to pass a test, to carry out a test, and etc
+		
+		We are only concerned with the actual word, "test", so we ignore all the others."""
+		
+		word = word.lower()
+		
+		if (row.get("en").lower() == word or row.get("de").lower() == word):
+			return True
+		
+		return False
 	
+	def get(self):
+		"""Grabs our cache of the last search"""
+		
+		self.__search()
+		return self.translations
+	
+	def getWord(self):
+		return self.word
+	
+	def __search(self):
+		"""Checks the interwebs to see if the word can be found there"""
+		
+		if (self.searchRan):
+			return
+		
+		self.searchRan = True
+		
+		#check our cache to see if it's already there
+		if (self.cache.exists()):
+			self.translations = self.cache.get()
+		else:
+			searchKey = self.word
+			
+			d = pq(url='http://dict.leo.org/ende?lp=ende&lang=de&searchLoc=0&cmpType=relaxed&sectHdr=on&spellToler=on&search=%s&relink=on' % urllib.quote(searchKey))
+			
+			#todo - We're going to have to branch here for sentences / phrases vs words
+			
+			rows = [word(en = pq(row[1]), de = pq(row[3])) for row in d.find("tr[valign=top]")]
+			
+			self.translations = [row for row in rows if self.__isWord(searchKey, row)]
+			
+			#and cache this search
+			self.cache.stash(self.translations)
+	
+	def exists(self):
+		"""Sees if the given word can be found online"""
+		
+		self.__search()
+		return config.getboolean("deutsch", "enable.scrape") and (len(self.translations) > 0)
+
 class cacher(data):
 	"""Controls the cache of words that we have already solved"""
 	
@@ -80,12 +132,12 @@ class cacher(data):
 	
 	def exists(self, found = 1):
 		"""Checks to see if we have a cache of the word"""
-		return config.getboolean("deutsch", "enable.cache") and self.db.query('SELECT 1 FROM `searches` WHERE `text`=%s AND `found`=%s;', (self.word, found))
+		return config.getboolean("deutsch", "enable.cache") and self.db.query('SELECT 1 FROM `searches` WHERE `text`=%s AND `found`=%s AND `type`="LEO";', (self.word, found))
 	
 	def get(self):
 		"""Gets a list of words from the cache based on the search"""
 		
-		words = self.db.query('SELECT * FROM `words` WHERE `en`=%s OR `de`=%s;', (self.word, self.word))
+		words = self.db.query('SELECT * FROM `leoWords` WHERE `en`=%s OR `de`=%s;', (self.word, self.word))
 		
 		if (type(words) != tuple):
 			return () #return an empty list...there's nothing anyway
@@ -98,7 +150,7 @@ class cacher(data):
 		if (not config.getboolean("deutsch", "enable.cache")):
 			return
 		
-		if ((self.exists(0) and len(words) == 0) or self.exists(1)):
+		if ((len(words) == 0 and self.exists(0)) or self.exists(1)):
 			return
 		
 		#first, save our search -- this is what we check to see if exists()
@@ -106,17 +158,18 @@ class cacher(data):
 			INSERT INTO `searches`
 			SET
 				`text`=%s,
-				`found`=%s
+				`found`=%s,
+				`type`="LEO"
 			;
 			""",
-			(self.word, bool(len(words) > 1))
+			(self.word, bool(len(words) >= 1))
 		)
 		
 		for w in words:
 			info = (w["en"], w["en-ext"], w["de"], w["de-ext"], w["pos"])
 			
 			sql = """
-				SELECT 1 FROM `words`
+				SELECT 1 FROM `leoWords`
 				WHERE
 					`en`=%s
 					AND
@@ -127,11 +180,12 @@ class cacher(data):
 					`de-ext`=%s
 					AND
 					`pos`=%s
+				;
 			"""
 			#only insert the row if it doesn't exist already (from another lookup)
 			if (not self.db.insert(sql, info)):
 				self.db.query("""
-					INSERT INTO `words`
+					INSERT INTO `leoWords`
 					SET
 						`en`=%s,
 						`en-ext`=%s,
@@ -143,63 +197,12 @@ class cacher(data):
 					info
 				)
 
-class scraper(data):
-	"""Controls access to words on the interwebs"""
-	
-	searchRan = False
-	
-	def __init__(self, word, cacher):
-		super(scraper, self).__init__()
-		self.word = word
-		self.cacher = cacher
-	
-	def __isWord(self, word, row):
-		"""Given a word, tests if it is actually the word we are looking for.
-		
-		Online, there will be some definitions like this (eg. for "test"):
-			test - to pass a test, to carry out a test, and etc
-		
-		We are only concerned with the actual word, "test", so we ignore all the others."""
-		
-		if (row.get("en") == word or row.get("de") == word):
-			return True
-		
-		return False
-	
-	def get(self):
-		"""Grabs our cache of the last search"""
-		
-		self.__search()
-		return self.translations
-	
-	def __search(self):
-		"""Checks the interwebs to see if the word can be found there"""
-		
-		if (self.searchRan):
-			return
-		
-		self.searchRan = True
-		
-		searchKey = self.word
-		
-		d = pq(url='http://dict.leo.org/ende?lp=ende&lang=de&searchLoc=0&cmpType=relaxed&sectHdr=on&spellToler=on&search=%s&relink=on' % urllib.quote(searchKey))
-		
-		#todo - We're going to have to branch here for sentences / phrases vs words
-		
-		rows = [word(en = pq(row[1]), de = pq(row[3])) for row in d.find("tr[valign=top]")]
-		
-		self.translations = [row for row in rows if self.__isWord(searchKey, row)]
-		
-		#and cache this search
-		self.cacher.stash(self.translations)
-	
-	def exists(self):
-		"""Sees if the given word can be found online"""
-		
-		self.__search()
-		return config.getboolean("deutsch", "enable.scrape") and (len(self.translations) > 0)
-
 class word:
+	"""
+	A wrapper for a word-string: allows operations on the word to get it to its base and get more
+	information about it.
+	"""
+	
 	extended = False
 	
 	#words that need a space after them in order to be removed
@@ -318,3 +321,249 @@ class word:
 			word = word[:loc]
 		
 		return word.strip("-").strip()
+
+#####################################################
+#####################  Info  ########################
+#####################################################
+###  The following are the classes that function  ###
+###           specifically on verbs.              ###
+#####################################################
+
+class deVerb(object):
+	def __init__(self, verb):
+		self.verb = verb
+	
+	def getStem(self):
+		ret = self.verb
+		
+		#start by removing any endings we could have when conjugated
+		for end in ["est", "et", "en", "e", "st", "t"]: #order matters in this list
+			if (ret[len(ret) - len(end):] == end): #remove the end, but only once (thus, rstrip doesn't work)
+				ret = ret[:len(ret) - len(end)]
+				break
+		
+		return ret
+	
+	def __str__(self):
+		return self.verb
+
+class inflexion(object):
+	def __init__(self, **inflect):
+		self.inflect = inflect
+	
+	def __getitem__(self, key):
+		return self.inflect[key]
+
+class canoo(data):
+	"""Controls access to canoo's database on the interwebs"""
+
+	searchRan = False
+	
+	#the last time a canoo page was loaded
+	lastCanooLoad = -1
+	
+	#seems to load fine after a second
+	canooWait = 1
+	
+	#external definitions for the helper verbs
+	helper = "haben"
+	helperHaben = "haben"
+	helperSein = "sein"
+	
+	def __init__(self, word):
+		super(canoo, self).__init__()
+		self.verb = deVerb(word)
+		self.cache = canooCacher(self.verb)
+	
+	def setHelper(self, helper):
+		if (helper != self.helperSein and helper != self.helperHaben):
+			helper = self.helperHaben
+		
+		self.helper = helper
+	
+	def exists(self):
+		self.__search()
+		return (len(self.inflexions) > 0)
+	
+	def get(self):
+		self.__search()
+		
+		if (self.helper not in self.inflexions.keys()):
+			return ()
+		
+		return self.inflexions[self.helper]
+	
+	def __search(self):
+		if (self.searchRan):
+			return
+		
+		self.searchRan = True
+		
+		if (self.cache.exists()):
+			self.inflexions = self.cache.get()
+		else:
+			self.__scrapeCanoo()
+	
+	def __scrapeCanoo(self):
+		"""Grabs the inflections of all verbs that match the query"""
+		
+		#hit the page
+		p = self.__getCanooPage('http://www.canoo.net/services/Controller?dispatch=inflection&input=%s' % urllib.quote(str(self.verb)))
+		
+		#setup our results
+		self.inflexions = dict()
+		
+		#canoo does some different routing depending on the results for the word, so let's check what page
+		#we recieved in order to verify we perform the right action on it
+		if (p.find("h1.Headline").text() != u"Wörterbuch Wortformen"):
+			(helper, inflect) = self.__processPage(p)
+			self.inflexions[helper] = inflect
+		else:
+			#grab the links
+			links = [l for l in p.find("td.contentWhite a[href^='/services/Controller?dispatch=inflection']") if pq(l).text().find("Verb") >= 0]
+			
+			for a in links:
+				(helper, inflect) = self.__scrapePage(a)
+				self.inflexions[helper] = inflect
+		
+	def __scrapePage(self, a):
+		"""Scrapes a page on canoo.net to find the verb forms"""
+		
+		#scrape the page with information about the verb
+		url = pq(a).attr.href
+		page = self.__getCanooPage('http://www.canoo.net/' + url)
+		
+		return self.__processPage(page)
+	
+	def __processPage(self, page):
+		#just use "q" for a basic "query" holder
+		
+		#find the table holding the present-forms of the verb
+		q = page.find("div#Presens div table tr")
+		stem = deVerb(q.eq(3).find("td").eq(1).text())
+		third = deVerb(q.eq(4).find("td").eq(1).text())
+		
+		#find the preterite
+		q = page.find("div#Praeteritum div table tr")
+		preterite = deVerb(q.eq(3).find("td").eq(1).text())
+		subj2 = deVerb(q.eq(3).find("td").eq(3).text())
+		
+		#find the perfekt
+		q = page.find("div#Perfect table tr")
+		perfect = deVerb(q.eq(4).find("td").eq(2).text())
+		
+		#get the full form of the verb
+		full = page.find("h1.Headline i").text()
+
+		#attempt to get the helper verb
+		helper = self.helperHaben if (page.find("div#Verb").prevAll("table").text().find("Hilfsverb: haben") != -1) else self.helperSein
+		
+		inflect = inflexion(full = full, helper = helper, stem = stem, preterite = preterite, perfect = perfect, third = third, subj2 = subj2)
+		
+		self.cache.stash(inflect)
+		
+		return (helper, inflect)
+	
+	def __getCanooPage(self, url):
+		"""Canoo has mechanisms to stop scraping, so we have to pause before hit the links too much"""
+		
+		if (self.lastCanooLoad != -1 and ((time.clock() - self.lastCanooLoad) < self.canooWait)):
+			time.sleep(self.canooWait - (time.clock() - self.lastCanooLoad))
+			
+		self.lastCanooLoad = time.clock()
+		return pq(url)
+		
+class canooCacher(data):
+	"""
+	Controls the cache of words from canoo
+	
+	Unlike the other cacher, this will NOT save a search if nothing was found (because this never gets
+	called, in that case)
+	"""
+	
+	def __init__(self, word):
+		super(canooCacher, self).__init__()
+		self.verb = word
+	
+	def exists(self, found = 1):
+		return config.getboolean("deutsch", "enable.cache") and self.db.query('SELECT 1 FROM `searches` WHERE `text`=%s AND `found`=%s AND `type`="Canoo";', (self.verb, found))
+	
+	def stash(self, inflect):
+		if (not config.getboolean("deutsch", "enable.cache")):
+			return
+		
+		if (not self.exists(1)):
+			self.db.query("""
+				INSERT INTO `searches`
+				SET
+					`text`=%s,
+					`found`=1,
+					`type`="Canoo"
+				;
+			""", (self.verb))
+		
+		found = self.db.query("""
+			SELECT 1 FROM `canooWords`
+			WHERE
+				`full`=%s
+				AND
+				`hilfsverb`=%s
+		""", (inflect["full"], str(inflect["helper"])))
+		
+		#if we don't have the word already stored....
+		if (not found):
+			self.db.insert("""
+				INSERT INTO `canooWords`
+				SET
+					`full`=%s,
+					`stem`=%s,
+					`preterite`=%s,
+					`hilfsverb`=%s,
+					`perfect`=%s,
+					`third`=%s,
+					`subj2`=%s
+				;
+			""", (
+				inflect["full"],
+				inflect["stem"].getStem(),
+				inflect["preterite"].getStem(),
+				str(inflect["helper"]),
+				inflect["perfect"].getStem(),
+				inflect["third"].getStem(),
+				inflect["subj2"].getStem()
+				)
+			)
+		
+	def get(self):
+		stem = self.verb.getStem()
+		
+		rows = self.db.query("""
+			SELECT * FROM `canooWords`
+			WHERE
+				`full`=%s
+				OR
+				`stem`=%s
+				OR
+				`preterite`=%s
+				OR
+				`perfect`=%s
+				OR
+				`third`=%s
+				OR
+				`subj2`=%s
+			;
+		""", (self.verb, stem, stem, stem, stem, stem))
+		
+		if (type(rows) != tuple):
+			return () #return an empty list...there's nothing anyway
+		
+		words = dict()
+		
+		for r in rows:
+			tmp = dict()
+			for k, v in r.iteritems():
+				tmp[k] = deVerb(v)
+			
+			words[r["hilfsverb"]] = tmp
+		
+		return words

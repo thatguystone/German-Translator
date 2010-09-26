@@ -53,12 +53,8 @@ class lookup(data):
 		return self.__isA("noun")
 	
 	def isVerb(self):
-		isVerb = self.__isA("verb")
+		return self.__isA("verb")
 		
-		#we have to be a bit more thorough since we might have gotten a conjugated verb,
-		#which can be confused for an adj/adv
-		
-	
 	def __isA(self, pos):
 		words = self.get()
 		if (len(words) == 0):
@@ -76,16 +72,24 @@ class lookup(data):
 		
 		word = word.lower()
 		
+		#i'm allowing three spaces before i throw a word as out invalid
+		if (len(row.get("en").split(" ")) > 3 or len(row.get("de").split(" ")) > 3):
+			return False
+		
 		if (row.get("en").lower() == word or row.get("de").lower() == word):
 			return True
 		
 		return False
 	
-	def get(self):
+	def get(self, pos = "all"):
 		"""Grabs our cache of the last search"""
 		
 		self.__search()
-		return self.translations
+		
+		if (pos in ['adjadv', 'noun', 'verb']):
+			return [t for t in self.translations if t["pos"] == pos]
+		else:
+			return self.translations
 	
 	def getWord(self):
 		return self.word
@@ -101,12 +105,10 @@ class lookup(data):
 		#check our cache to see if it's already there
 		if (self.cache.exists()):
 			self.translations = self.cache.get()
-		else:
+		elif (not self.cache.exists(0)): #don't hit the internet every time we have a miss -- if it's a miss, move on
 			searchKey = self.word
 			
 			d = pq(url='http://dict.leo.org/ende?lp=ende&lang=de&searchLoc=0&cmpType=relaxed&sectHdr=on&spellToler=on&search=%s&relink=on' % urllib.quote(searchKey))
-			
-			#todo - We're going to have to branch here for sentences / phrases vs words
 			
 			rows = [word(en = pq(row[1]), de = pq(row[3])) for row in d.find("tr[valign=top]")]
 			
@@ -114,6 +116,8 @@ class lookup(data):
 			
 			#and cache this search
 			self.cache.stash(self.translations)
+		else:
+			self.translations = ()
 	
 	def exists(self):
 		"""Sees if the given word can be found online"""
@@ -342,10 +346,23 @@ class deVerb(object):
 				ret = ret[:len(ret) - len(end)]
 				break
 		
+		if (type(ret) == str):
+			ret = unicode(ret, "utf8")
+		
 		return ret
+	
+	def getString(self):
+		return self.verb
 	
 	def __str__(self):
 		return self.verb
+	
+	def __unicode__(self):
+		return unicode(self.verb)
+	
+	def __eq__(self, other):
+		"""Make string compares on verbs work"""
+		return self.verb == unicode(other.decode("utf-8"))
 
 class inflexion(object):
 	def __init__(self, **inflect):
@@ -385,10 +402,17 @@ class canoo(data):
 		self.__search()
 		return (len(self.inflexions) > 0)
 	
-	def get(self):
+	def getVerb(self):
+		return self.verb
+	
+	def get(self, unknownHelper = False):
 		self.__search()
 		
 		if (self.helper not in self.inflexions.keys()):
+			if (unknownHelper and len(self.inflexions.keys()) > 0): #if we don't know the helper, return whatever we have
+				return self.inflexions[self.inflexions.keys()[0]]
+			
+			#the list was empty, just die
 			return ()
 		
 		return self.inflexions[self.helper]
@@ -408,14 +432,20 @@ class canoo(data):
 		"""Grabs the inflections of all verbs that match the query"""
 		
 		#hit the page
-		p = self.__getCanooPage('http://www.canoo.net/services/Controller?dispatch=inflection&input=%s' % urllib.quote(str(self.verb)))
+		url = url = unicode(str(self.verb).decode("utf-8"))
+		for c, r in zip([u'ä', u'ö', u'ü', u'ß'], ['ae', 'oe', 'ue', 'ss']): #sadiofhpaw8oenfasienfkajsdf! urls suck
+			url = url.replace(c, r)
+		
+		p = self.__getCanooPage('http://www.canoo.net/services/Controller?dispatch=inflection&input=%s' % urllib.quote(url))
 		
 		#setup our results
 		self.inflexions = dict()
 		
 		#canoo does some different routing depending on the results for the word, so let's check what page
 		#we recieved in order to verify we perform the right action on it
-		if (p.find("h1.Headline").text() != u"Wörterbuch Wortformen"):
+		if (p.find("h1.Headline").text().find(u"Keine Einträge gefunden") >= 0):
+			self.inflexions = dict()
+		elif (p.find("h1.Headline").text() != u"Wörterbuch Wortformen"):
 			(helper, inflect) = self.__processPage(p)
 			self.inflexions[helper] = inflect
 		else:
@@ -466,6 +496,8 @@ class canoo(data):
 	
 	def __getCanooPage(self, url):
 		"""Canoo has mechanisms to stop scraping, so we have to pause before hit the links too much"""
+		
+		print url
 		
 		if (self.lastCanooLoad != -1 and ((time.clock() - self.lastCanooLoad) < self.canooWait)):
 			time.sleep(self.canooWait - (time.clock() - self.lastCanooLoad))
@@ -561,6 +593,7 @@ class canooCacher(data):
 		
 		for r in rows:
 			tmp = dict()
+			del r['id'] #remove the id row, we don't need it
 			for k, v in r.iteritems():
 				tmp[k] = deVerb(v)
 			

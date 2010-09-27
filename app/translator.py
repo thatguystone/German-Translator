@@ -100,7 +100,6 @@ class sentenceFigurer(figurer):
 			elif (forms["third"].getStem() == stem or forms["stem"].getStem() == stem):
 				#this might seem a bit weird -- we need to compare our stem to the stem from the site to see if it's present tense
 				#we also use third because that one might conjugate differently, but it's still present tense
-				print trans
 				return [self.meaning("(present tense) " + t["en"], verb) for t in trans]
 			elif (forms["subj2"].getStem() == stem):
 				return [self.meaning("(conditional) " + t["en"], verb) for t in trans]

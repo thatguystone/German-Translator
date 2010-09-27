@@ -8,9 +8,12 @@ import time
 
 from mysql import mysql
 import translator
+import utf8
 
 def resolveWord(word):
 	"""Attempts to find a good translation for the word"""
+	
+	word = utf8.encode(word)
 	
 	#step 1: run a lookup for common german stuff that we already know
 	local = lookup(word)
@@ -73,7 +76,7 @@ class lookup(data):
 		word = word.lower()
 		
 		#i'm allowing three spaces before i throw a word as out invalid
-		if (len(row.get("en").split(" ")) > 3 or len(row.get("de").split(" ")) > 3):
+		if (len(row.get("en").strip().split(" ")) > 2 or len(row.get("de").strip().split(" ")) > 2):
 			return False
 		
 		if (row.get("en").lower() == word or row.get("de").lower() == word):
@@ -108,7 +111,7 @@ class lookup(data):
 		elif (not self.cache.exists(0)): #don't hit the internet every time we have a miss -- if it's a miss, move on
 			searchKey = self.word
 			
-			d = pq(url='http://dict.leo.org/ende?lp=ende&lang=de&searchLoc=0&cmpType=relaxed&sectHdr=on&spellToler=on&search=%s&relink=on' % urllib.quote(searchKey))
+			d = pq(url='http://dict.leo.org/ende?lp=ende&lang=de&searchLoc=0&cmpType=relaxed&sectHdr=on&spellToler=on&search=%s&relink=on' % urllib.quote(searchKey.encode("utf-8")))
 			
 			rows = [word(en = pq(row[1]), de = pq(row[3])) for row in d.find("tr[valign=top]")]
 			
@@ -239,7 +242,7 @@ class word:
 		
 		#and save our dictionary (everything from the database is already utf8)
 		self.translations = row
-
+		
 	def createWordFromPq(self, words):
 		"""Given a pyquery object, creates and cleans up the translations"""
 		
@@ -247,11 +250,11 @@ class word:
 		for k, v in words.iteritems():
 			#since we accept both string and pyquery, we have to clean both
 			if (type(v) == pq):
-				self.translations[k + "-ext"] = v.text().encode('utf-8')
+				self.translations[k + "-ext"] = utf8.encode(v.text())
 			else:
-				self.translations[k + "-ext"] = v.encode('utf-8')
+				self.translations[k + "-ext"] = utf8.encode(v)
 			
-			self.translations[k] = self.__cleanWord(v).encode('utf-8')
+			self.translations[k] = utf8.encode(self.__cleanWord(v))
 		
 		#find out the part of speech of this one
 		de = self.translations["de-ext"]
@@ -335,7 +338,7 @@ class word:
 
 class deVerb(object):
 	def __init__(self, verb):
-		self.verb = verb
+		self.verb = utf8.encode(verb)
 	
 	def getStem(self):
 		ret = self.verb
@@ -346,23 +349,17 @@ class deVerb(object):
 				ret = ret[:len(ret) - len(end)]
 				break
 		
-		if (type(ret) == str):
-			ret = unicode(ret, "utf8")
-		
 		return ret
 	
 	def getString(self):
 		return self.verb
 	
-	def __str__(self):
-		return self.verb
-	
 	def __unicode__(self):
-		return unicode(self.verb)
+		return self.verb
 	
 	def __eq__(self, other):
 		"""Make string compares on verbs work"""
-		return self.verb == unicode(other.decode("utf-8"))
+		return self.verb == other
 
 class inflexion(object):
 	def __init__(self, **inflect):
@@ -432,11 +429,11 @@ class canoo(data):
 		"""Grabs the inflections of all verbs that match the query"""
 		
 		#hit the page
-		url = url = unicode(str(self.verb).decode("utf-8"))
+		url = unicode(self.verb)
 		for c, r in zip([u'ä', u'ö', u'ü', u'ß'], ['ae', 'oe', 'ue', 'ss']): #sadiofhpaw8oenfasienfkajsdf! urls suck
 			url = url.replace(c, r)
 		
-		p = self.__getCanooPage('http://www.canoo.net/services/Controller?dispatch=inflection&input=%s' % urllib.quote(url))
+		p = self.__getCanooPage('http://www.canoo.net/services/Controller?dispatch=inflection&input=%s' % urllib.quote(url.encode("utf-8")))
 		
 		#setup our results
 		self.inflexions = dict()
@@ -497,8 +494,6 @@ class canoo(data):
 	def __getCanooPage(self, url):
 		"""Canoo has mechanisms to stop scraping, so we have to pause before hit the links too much"""
 		
-		print url
-		
 		if (self.lastCanooLoad != -1 and ((time.clock() - self.lastCanooLoad) < self.canooWait)):
 			time.sleep(self.canooWait - (time.clock() - self.lastCanooLoad))
 			
@@ -518,7 +513,7 @@ class canooCacher(data):
 		self.verb = word
 	
 	def exists(self, found = 1):
-		return config.getboolean("deutsch", "enable.cache") and self.db.query('SELECT 1 FROM `searches` WHERE `text`=%s AND `found`=%s AND `type`="Canoo";', (self.verb, found))
+		return config.getboolean("deutsch", "enable.cache") and self.db.query('SELECT 1 FROM `searches` WHERE `text`=%s AND `found`=%s AND `type`="Canoo";', (unicode(self.verb), found))
 	
 	def stash(self, inflect):
 		if (not config.getboolean("deutsch", "enable.cache")):
@@ -532,7 +527,7 @@ class canooCacher(data):
 					`found`=1,
 					`type`="Canoo"
 				;
-			""", (self.verb))
+			""", (unicode(self.verb)))
 		
 		found = self.db.query("""
 			SELECT 1 FROM `canooWords`
@@ -540,7 +535,7 @@ class canooCacher(data):
 				`full`=%s
 				AND
 				`hilfsverb`=%s
-		""", (inflect["full"], str(inflect["helper"])))
+		""", (inflect["full"], unicode(inflect["helper"])))
 		
 		#if we don't have the word already stored....
 		if (not found):
@@ -559,7 +554,7 @@ class canooCacher(data):
 				inflect["full"],
 				inflect["stem"].getStem(),
 				inflect["preterite"].getStem(),
-				str(inflect["helper"]),
+				unicode(inflect["helper"]),
 				inflect["perfect"].getStem(),
 				inflect["third"].getStem(),
 				inflect["subj2"].getStem()

@@ -48,6 +48,7 @@ class lookup(data):
 		super(lookup, self).__init__()
 		self.word = word
 		self.cache = cacher(word)
+		self.canoo = canoo(word)
 	
 	def isAdjAdv(self):
 		return self.__isA("adjadv")
@@ -56,7 +57,7 @@ class lookup(data):
 		return self.__isA("noun")
 	
 	def isVerb(self):
-		return self.__isA("verb")
+		return self.canoo.exists()
 		
 	def __isA(self, pos):
 		words = self.get()
@@ -96,6 +97,9 @@ class lookup(data):
 	
 	def getWord(self):
 		return self.word
+	
+	def getVerb(self):
+		return self.canoo
 	
 	def __search(self):
 		"""Checks the interwebs to see if the word can be found there"""
@@ -359,7 +363,10 @@ class deVerb(object):
 	
 	def __eq__(self, other):
 		"""Make string compares on verbs work"""
-		return self.verb == other
+		return self.verb == unicode(other)
+	
+	def __ne__(self, other):
+		return not self.__eq__(other)
 
 class inflexion(object):
 	def __init__(self, **inflect):
@@ -437,14 +444,18 @@ class canoo(data):
 		
 		#setup our results
 		self.inflexions = dict()
-		
+
 		#canoo does some different routing depending on the results for the word, so let's check what page
 		#we recieved in order to verify we perform the right action on it
-		if (p.find("h1.Headline").text().find(u"Keine Einträge gefunden") >= 0):
-			self.inflexions = dict()
-		elif (p.find("h1.Headline").text() != u"Wörterbuch Wortformen"):
-			(helper, inflect) = self.__processPage(p)
-			self.inflexions[helper] = inflect
+		if (p.find("h1.Headline").text() != u"Wörterbuch Wortformen"):
+			if(p.find("h1.Headline").text().find(u"Keine Einträge gefunden") >= 0
+				or
+				p.find("div#Verb").text() == None
+			):
+				self.inflexions = dict()
+			else:
+				(helper, inflect) = self.__processPage(p)
+				self.inflexions[helper] = inflect
 		else:
 			#grab the links
 			links = [l for l in p.find("td.contentWhite a[href^='/services/Controller?dispatch=inflection']") if pq(l).text().find("Verb") >= 0]
@@ -494,10 +505,11 @@ class canoo(data):
 	def __getCanooPage(self, url):
 		"""Canoo has mechanisms to stop scraping, so we have to pause before hit the links too much"""
 		
-		if (self.lastCanooLoad != -1 and ((time.clock() - self.lastCanooLoad) < self.canooWait)):
-			time.sleep(self.canooWait - (time.clock() - self.lastCanooLoad))
+		#make sure these are python-"static" (*canoo* instead of *self*)
+		if (canoo.lastCanooLoad != -1 and ((time.clock() - self.lastCanooLoad) < canoo.canooWait)):
+			time.sleep(canoo.canooWait - (time.clock() - self.lastCanooLoad))
 			
-		self.lastCanooLoad = time.clock()
+		canoo.lastCanooLoad = time.clock()
 		return pq(url)
 		
 class canooCacher(data):

@@ -25,7 +25,7 @@ DROP TABLE IF EXISTS `canooWords`;
 CREATE TABLE `canooWords` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `full` varchar(50) NOT NULL,
-  `stem` varchar(50) NOT NULL COMMENT 'Equal to third person',
+  `stem` varchar(50) NOT NULL COMMENT 'Equal to first person',
   `preterite` varchar(50) NOT NULL,
   `hilfsverb` enum('haben','sein') NOT NULL,
   `perfect` varchar(50) NOT NULL,
@@ -39,7 +39,7 @@ CREATE TABLE `canooWords` (
   KEY `perfect` (`perfect`),
   KEY `third` (`third`),
   KEY `subj2` (`subj2`)
-) ENGINE=MyISAM AUTO_INCREMENT=17 DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM AUTO_INCREMENT=19 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -59,7 +59,7 @@ CREATE TABLE `leoWords` (
   PRIMARY KEY (`id`),
   KEY `en` (`en`),
   KEY `de` (`de`)
-) ENGINE=MyISAM AUTO_INCREMENT=221 DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM AUTO_INCREMENT=229 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -76,7 +76,7 @@ CREATE TABLE `searches` (
   `type` enum('LEO','Canoo') NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `text` (`text`,`found`,`type`)
-) ENGINE=MyISAM AUTO_INCREMENT=123 DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM AUTO_INCREMENT=133 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
@@ -88,4 +88,4 @@ CREATE TABLE `searches` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2010-09-26 23:33:18
+-- Dump completed on 2010-09-28 21:53:21

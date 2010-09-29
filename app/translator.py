@@ -80,7 +80,7 @@ class sentenceFigurer(figurer):
 		"""
 		
 		#first, let's scan the clause for other verbs to give us an idea of what we're looking at
-		helpers = [v for v in words if v.isVerb()]
+		helpers = [v.getVerb() for v in words if v.isVerb()]
 		
 		#if we have helpers, then we have to do a little more work
 		if (len(helpers) > 0):
@@ -96,22 +96,55 @@ class sentenceFigurer(figurer):
 			
 			#let's take a look at our forms and see what we can find
 			if (forms["preterite"].getStem() == stem):
-				return [self.meaning("(simple past) " + t["en"], verb) for t in trans]
+				return self.meaning("(simple past)", trans, verb)
 			elif (forms["third"].getStem() == stem or forms["stem"].getStem() == stem):
 				#this might seem a bit weird -- we need to compare our stem to the stem from the site to see if it's present tense
 				#we also use third because that one might conjugate differently, but it's still present tense
-				return [self.meaning("(present tense) " + t["en"], verb) for t in trans]
+				return self.meaning("(simple past)", trans, verb)
 			elif (forms["subj2"].getStem() == stem):
-				return [self.meaning("(conditional) " + t["en"], verb) for t in trans]
+				return self.meaning("(conditional)", trans, verb)
 			else:
 				return () #not sure what we're looking at, but it's not correct
 			
 		
 	def __helperVerby(self, verb, helpers, words):
+		"""
+		Goes through the list of words and attempts to find what the helper verbs are doing to the verb
+		"""
+		
+		#attempt to find what this helper is doing
+		helper = helpers[0].get()
+		helperStem = helpers[0].getVerb().getStem()
+		
+		#right now, we only handle sentences with 2 verbs
+		
+		
+		if (helper["stem"] == "hab" or helper["stem"] == "sei"):
+			#process the past tense with a helper verb
+			
+			#get the verb form based on which helper it uses (haben or sein)
+			verbForms = verb.get(helper["full"])
+			
+			#is the verb in the right form for having a helper?
+			if (verbForms["perfect"] != verb.getVerb().getStem()):
+				return ()
+			
+			trans = data.lookup(unicode(verbForms["full"])).get("verb")
+			
+			print unicode(verbForms["full"])
+			
+			if (helperStem == helper["third"] or helperStem == helper["stem"]):
+				return self.meaning("(past perfect)", trans, unicode(helper["full"]))
+			elif (helperStem == helper["subj2"]):
+				return self.meaning("(Konj.2 in past)", trans, unicode(helper["full"]))
+		elif (helper["stem"] == "werd"):
+			#something going on with werden -> conditional present, passive voice
+			pass
+		
 		return ()
 		
-	def meaning(self, en, de):
-		return dict({"en": en , "de": de})
+	def meaning(self, tense, en, de):
+		return [dict({"en": tense + " " + t["en"], "de": de}) for t in en]
 		
 class wordFigurer(figurer):
 	@classmethod

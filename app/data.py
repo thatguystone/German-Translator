@@ -220,7 +220,7 @@ class word:
 	spaceWords = ["der", "die", "das", "to", "zu", "zur", "zum"]
 	
 	#words to always remove
-	unspacedWords = ["sth.", "etw.", "jmdm.", "jmdn.", "so."]
+	unspacedWords = ["sth.", "etw.", "jmdm.", "jmdn.", "jmds.", "so."]
 	
 	#words that can have a space before or after to remove
 	#and stupid python 2.* requires unicode strings for anything fun...ugh
@@ -331,7 +331,7 @@ class word:
 		if (loc >= 0):
 			word = word[:loc]
 		
-		return word.strip("-").strip()
+		return word.strip("/").strip("-").strip()
 
 #####################################################
 #####################  Info  ########################
@@ -373,7 +373,12 @@ class inflexion(object):
 		self.inflect = inflect
 	
 	def __getitem__(self, key):
-		return self.inflect[key]
+		i = self.inflect[key]
+		
+		if (type(i) == deVerb):
+			return i.getStem()
+			
+		return i
 
 class canoo(data):
 	"""Controls access to canoo's database on the interwebs"""
@@ -455,15 +460,23 @@ class canoo(data):
 				self.inflexions = dict()
 			else:
 				(helper, inflect) = self.__processPage(p)
-				self.inflexions[helper] = inflect
+				
+				if (not helper in self.inflexions.keys()):
+					self.inflexions[helper] = []
+				
+				self.inflexions[helper].append(inflect)
 		else:
 			#grab the links
 			links = [l for l in p.find("td.contentWhite a[href^='/services/Controller?dispatch=inflection']") if pq(l).text().find("Verb") >= 0]
 			
 			for a in links:
 				(helper, inflect) = self.__scrapePage(a)
-				self.inflexions[helper] = inflect
-		
+				
+				if (not helper in self.inflexions.keys()):
+					self.inflexions[helper] = []
+				
+				self.inflexions[helper].append(inflect)
+			
 	def __scrapePage(self, a):
 		"""Scrapes a page on canoo.net to find the verb forms"""
 		
@@ -564,12 +577,12 @@ class canooCacher(data):
 				;
 			""", (
 				inflect["full"],
-				inflect["stem"].getStem(),
-				inflect["preterite"].getStem(),
+				inflect["stem"],
+				inflect["preterite"],
 				unicode(inflect["helper"]),
-				inflect["perfect"].getStem(),
-				inflect["third"].getStem(),
-				inflect["subj2"].getStem()
+				inflect["perfect"],
+				inflect["third"],
+				inflect["subj2"]
 				)
 			)
 		
@@ -604,6 +617,9 @@ class canooCacher(data):
 			for k, v in r.iteritems():
 				tmp[k] = deVerb(v)
 			
-			words[r["hilfsverb"]] = tmp
+			if (not r["hilfsverb"] in words.keys()):
+				words[r["hilfsverb"]] = []
+			
+			words[r["hilfsverb"]].append(tmp)
 		
 		return words

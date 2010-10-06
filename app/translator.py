@@ -91,21 +91,25 @@ class sentenceFigurer(figurer):
 			forms = verb.get(unknownHelper = True)
 			verb = verb.getVerb().getString()
 			
-			#run to our word translator -- grab all the verbs that match the infinitive
-			trans = data.lookup(unicode(forms["full"])).get("verb")
+			ret = []
 			
-			#let's take a look at our forms and see what we can find
-			if (forms["preterite"].getStem() == stem):
-				return self.meaning("(simple past)", trans, verb)
-			elif (forms["third"].getStem() == stem or forms["stem"].getStem() == stem):
-				#this might seem a bit weird -- we need to compare our stem to the stem from the site to see if it's present tense
-				#we also use third because that one might conjugate differently, but it's still present tense
-				return self.meaning("(simple past)", trans, verb)
-			elif (forms["subj2"].getStem() == stem):
-				return self.meaning("(conditional)", trans, verb)
-			else:
-				return () #not sure what we're looking at, but it's not correct
+			for form in forms:
+				#run to our word translator -- grab all the verbs that match the infinitive
+				trans = data.lookup(unicode(form["full"])).get("verb")
+				
+				#let's take a look at our forms and see what we can find
+				if (form["preterite"] == stem):
+					self.meaning(ret, "(simple past)", trans, verb)
+				elif (form["third"] == stem or form["stem"] == stem):
+					#this might seem a bit weird -- we need to compare our stem to the stem from the site to see if it's present tense
+					#we also use third because that one might conjugate differently, but it's still present tense
+					self.meaning(ret, "(present)", trans, verb)
+				elif (form["subj2"] == stem):
+					self.meaning(ret, "(conditional)", trans, verb)
+				else:
+					pass #not sure what we're looking at, but it's not correct
 			
+			return ret
 		
 	def __helperVerby(self, verb, helpers, words):
 		"""
@@ -118,33 +122,45 @@ class sentenceFigurer(figurer):
 		
 		#right now, we only handle sentences with 2 verbs
 		
+		#only do something if we could find the helper
+		if (len(helper) > 0):
+			helper = helper[0]
 		
-		if (helper["stem"] == "hab" or helper["stem"] == "sei"):
-			#process the past tense with a helper verb
-			
-			#get the verb form based on which helper it uses (haben or sein)
-			verbForms = verb.get(helper["full"])
-			
-			#is the verb in the right form for having a helper?
-			if (verbForms["perfect"] != verb.getVerb().getStem()):
-				return ()
-			
-			trans = data.lookup(unicode(verbForms["full"])).get("verb")
-			
-			print unicode(verbForms["full"])
-			
-			if (helperStem == helper["third"] or helperStem == helper["stem"]):
-				return self.meaning("(past perfect)", trans, unicode(helper["full"]))
-			elif (helperStem == helper["subj2"]):
-				return self.meaning("(Konj.2 in past)", trans, unicode(helper["full"]))
-		elif (helper["stem"] == "werd"):
-			#something going on with werden -> conditional present, passive voice
-			pass
+			if (helper["stem"] == "hab" or helper["stem"] == "sei"):
+				#process the past tense with a helper verb
+				
+				#it's possible that we have numerous verbs that take the same past-tense form
+				verbForms = []
+				stem = verb.getVerb().getStem()
+				
+				for v in verb.get(helper["full"]):
+					#is the verb in the right form for having a helper?
+					if (v["perfect"] == stem):
+						verbForms.append(v)
+				
+				#two loops...otherwise things get far too indented and painful
+				ret = []
+				for verbForm in verbForms:
+					#get the translation 
+					trans = data.lookup(unicode(verbForm["full"])).get("verb")
+					
+					#process the translation into its proper output form
+					if (helperStem == helper["third"] or helperStem == helper["stem"]):
+						self.meaning(ret, "(past perfect)", trans, unicode(verbForm["full"]))
+					elif (helperStem == helper["subj2"]):
+						self.meaning(ret, "(Konj.2 in past)", trans, unicode(verbForm["full"]))
+				
+				return ret
+			elif (helper["stem"] == "werd"):
+				#something going on with werden -> conditional present, passive voice
+				pass
 		
+		#we couldn't even find the helper...that's discouraging
 		return ()
 		
-	def meaning(self, tense, en, de):
-		return [dict({"en": tense + " " + t["en"], "de": de}) for t in en]
+	def meaning(self, retList, tense, en, de):
+		for t in en:
+			retList.append(dict({"en": tense + " " + t["en"], "de": de}))
 		
 class wordFigurer(figurer):
 	@classmethod

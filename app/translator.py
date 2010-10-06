@@ -117,7 +117,7 @@ class sentenceFigurer(figurer):
 		"""
 		
 		#attempt to find what this helper is doing
-		helper = helpers[0].get()
+		helper = helpers[0].get(unknownHelper = True)
 		helperStem = helpers[0].getVerb().getStem()
 		
 		#right now, we only handle sentences with 2 verbs
@@ -125,7 +125,9 @@ class sentenceFigurer(figurer):
 		#only do something if we could find the helper
 		if (len(helper) > 0):
 			helper = helper[0]
-		
+			
+			ret = []
+			
 			if (helper["stem"] == "hab" or helper["stem"] == "sei"):
 				#process the past tense with a helper verb
 				
@@ -139,7 +141,6 @@ class sentenceFigurer(figurer):
 						verbForms.append(v)
 				
 				#two loops...otherwise things get far too indented and painful
-				ret = []
 				for verbForm in verbForms:
 					#get the translation 
 					trans = data.lookup(unicode(verbForm["full"])).get("verb")
@@ -153,10 +154,32 @@ class sentenceFigurer(figurer):
 				return ret
 			elif (helper["stem"] == "werd"):
 				#something going on with werden -> conditional present, passive voice
-				pass
-		
+				enteredVerbStem = unicode(verb.getVerb().getStem())
+				enteredVerb = unicode(verb.getVerb())
+				verbs = verb.get(returnAll = True)
+				
+				#the conjugated form of the helper
+				helperConj = unicode(helpers[0].getVerb().getStem())
+				
+				for k, h in verbs.iteritems(): #for each helper returned
+					for v in h: #for each verb
+						trans = data.lookup(unicode(v['full'])).get("verb")
+					
+						if (helperConj == helper["subj2"]):
+							#conditional (present/future)
+							if (enteredVerb == v["full"]):
+								self.meaning(ret, "(fut./pres. conditional)", trans, enteredVerb)
+						elif (helperConj == helper["stem"] or helperConj == helper["third"]):
+							#future
+							if (enteredVerb == v["full"]):
+								self.meaning(ret, "(future)", trans, enteredVerb)
+						elif (helperConj == helper["preterite"]):
+							#passive
+							if (enteredVerbStem == v["perfect"]):
+								self.meaning(ret, "(passive)", trans, enteredVerb)
+				
 		#we couldn't even find the helper...that's discouraging
-		return ()
+		return ret
 		
 	def meaning(self, retList, tense, en, de):
 		for t in en:

@@ -343,6 +343,10 @@ class word:
 class deVerb(object):
 	def __init__(self, verb):
 		self.verb = utf8.encode(verb)
+		
+		if (self.verb.find(" ") >= 0):
+			self.verb = self.verb.split(" ")[0]
+			self.verb = self.getStem()
 	
 	def getStem(self):
 		ret = self.verb
@@ -414,8 +418,17 @@ class canoo(data):
 	def getVerb(self):
 		return self.verb
 	
-	def get(self, unknownHelper = False):
+	def get(self, unknownHelper = False, returnAll = False):
+		"""
+		Gets the verb forms with their helpers.
+		-unknownHelper = the helper is not known, just return the first matching with any helper
+		-returnAll = give me everything you have
+		"""
+		
 		self.__search()
+		
+		if (returnAll):
+			return self.inflexions
 		
 		if (self.helper not in self.inflexions.keys()):
 			if (unknownHelper and len(self.inflexions.keys()) > 0): #if we don't know the helper, return whatever we have
@@ -492,7 +505,7 @@ class canoo(data):
 		#find the table holding the present-forms of the verb
 		q = page.find("div#Presens div table tr")
 		stem = deVerb(q.eq(3).find("td").eq(1).text())
-		third = deVerb(q.eq(4).find("td").eq(1).text())
+		third = deVerb(q.eq(5).find("td").eq(1).text())
 		
 		#find the preterite
 		q = page.find("div#Praeteritum div table tr")
@@ -538,8 +551,25 @@ class canooCacher(data):
 		self.verb = word
 	
 	def exists(self, found = 1):
-		return config.getboolean("deutsch", "enable.cache") and self.db.query('SELECT 1 FROM `searches` WHERE `text`=%s AND `found`=%s AND `type`="Canoo";', (unicode(self.verb), found))
-	
+		stem = self.verb.getStem()
+		
+		return config.getboolean("deutsch", "enable.cache") and  self.db.query("""
+			SELECT 1 FROM `canooWords`
+			WHERE
+				`full`=%s
+				OR
+				`stem`=%s
+				OR
+				`preterite`=%s
+				OR
+				`perfect`=%s
+				OR
+				`third`=%s
+				OR
+				`subj2`=%s
+			;
+		""", (unicode(self.verb), stem, stem, stem, stem, stem))
+		
 	def stash(self, inflect):
 		if (not config.getboolean("deutsch", "enable.cache")):
 			return

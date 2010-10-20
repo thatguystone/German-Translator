@@ -39,7 +39,23 @@ CREATE TABLE `canooWords` (
   KEY `perfect` (`perfect`),
   KEY `third` (`third`),
   KEY `subj2` (`subj2`)
-) ENGINE=MyISAM AUTO_INCREMENT=5 DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM AUTO_INCREMENT=3 DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `failedSearches`
+--
+
+DROP TABLE IF EXISTS `failedSearches`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `failedSearches` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `search` varchar(100) NOT NULL,
+  `source` enum('leo','canoo') NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `search` (`search`,`source`)
+) ENGINE=MyISAM AUTO_INCREMENT=2 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -51,32 +67,16 @@ DROP TABLE IF EXISTS `leoWords`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `leoWords` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `en` varchar(200) NOT NULL,
-  `en-ext` varchar(200) NOT NULL,
-  `de` varchar(200) NOT NULL,
-  `de-ext` varchar(200) NOT NULL,
+  `en` varchar(100) NOT NULL,
+  `enExt` varchar(200) NOT NULL,
+  `de` varchar(100) NOT NULL,
+  `deExt` varchar(200) NOT NULL,
   `pos` enum('adjadv','noun','prep','verb') NOT NULL COMMENT 'Not piece of shit -- part of speech',
   PRIMARY KEY (`id`),
+  UNIQUE KEY `en_2` (`en`,`de`,`pos`),
   KEY `en` (`en`),
   KEY `de` (`de`)
-) ENGINE=MyISAM AUTO_INCREMENT=13 DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `searches`
---
-
-DROP TABLE IF EXISTS `searches`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `searches` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `text` varchar(150) NOT NULL,
-  `found` tinyint(1) NOT NULL,
-  `type` enum('LEO','Canoo') NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `text` (`text`,`found`,`type`)
-) ENGINE=MyISAM AUTO_INCREMENT=15 DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM AUTO_INCREMENT=5 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
@@ -88,4 +88,4 @@ CREATE TABLE `searches` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2010-10-05 21:14:36
+-- Dump completed on 2010-10-19 21:17:28

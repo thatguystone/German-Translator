@@ -1,4 +1,4 @@
-from app import data
+from app import translator
 import displayer
 
 from optparse import OptionParser
@@ -16,17 +16,17 @@ class router:
 		else:
 			word = opts.word
 		
-		displayer.showResults(word, data.resolveWord(word))
+		displayer.showResults(word, translator.translate(word))
 		
 	def setupOptions(self):
 		"""Contains the command line option parser"""
 		
 		parser = OptionParser()
 		
-		parser.add_option("-e", "--extended-results",
-			action="callback", callback=data.word.showExtended,
-			help="print out extended results (includes things like \"to\" and \"der/die/das\")"
-		)
+		#parser.add_option("-e", "--extended-results",
+		#	action="callback", callback=translator.word.showExtended,
+		#	help="print out extended results (includes things like \"to\" and \"der/die/das\")"
+		#)
 		
 		parser.add_option("-w", "--word",
 			action="store", type="string", dest="word",

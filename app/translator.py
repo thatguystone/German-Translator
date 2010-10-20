@@ -1,40 +1,42 @@
 from config import config
-import data
+import word
+import utf8
 
-#what we are attempting to translate
-query = ""
-
-def setQuery(q):
-	"""Sets what we are attempting to figure out -- call this before calling the other functions"""
+def translate(query):
+	"""Does the hefty work of translating the input"""
 	
-	global query
-	query = q
-
-def canTranslate():
-	"""A basic check to see if we actually know how to translate the query"""
-	
-	return config.getboolean("deutsch", "enable.translator") and (sentenceFigurer.canTranslate(query) or wordFigurer.canTranslate(query))
-
-def translate():
-	"""Does the actual translation"""
+	query = utf8.encode(query)
 	
 	if (sentenceFigurer.canTranslate(query)):
-		trn = sentenceFigurer(query)
+		s = sentenceFigurer(query)
+		return s.translate()
 	else:
-		trn = wordFigurer(query)
+		w = word.word(query)
+		return w.get()
 	
-	return trn.translate()
-
 class figurer(object):
 	def __init__(self, query):
 		self.query = query
 
+class wordFigurer(figurer):
+	@classmethod
+	def canTranslate(cls, query):
+		"""A basic checker to see if it's even worthwhile running this on the query"""
+		
+		return len(query.split(" ")) == 0
+	
+	def translate(self):
+		#step 1: see if we have the word defined
+		
+		#step 2: no word was defined, attempt to break it down
+		pass
+		
 class sentenceFigurer(figurer):
 	@classmethod
 	def canTranslate(cls, query):
 		"""A basic checker to see if it's even worthwhile running this on the query"""
 		
-		return (query.find("*") > 0 and len(query.split(" ")) > 1)
+		return len(query.split(" ")) > 1
 	
 	def translate(self):
 		"""Assumes we can translate it, then runs a sentence guesser on it"""
@@ -54,7 +56,7 @@ class sentenceFigurer(figurer):
 			return ()
 		
 		#let's remove all the stars and start figuring out what we're looking at
-		words = [data.lookup(w.replace("*", "")) for w in words]
+		words = [word.word(w.replace("*", "")) for w in words]
 		
 		#let's remove the word we're focusing on
 		focus = words[index]
@@ -65,9 +67,8 @@ class sentenceFigurer(figurer):
 		if ((focus.isNoun() or focus.isAdjAdv()) and not focus.isVerb()):
 			ret = focus.get()
 		else: #it's a verb
-			verb = data.canoo(focus.getWord())
-			if (verb.exists()):
-				ret = self.__beVerby(words, verb)
+			if (focus.exists()):
+				ret = self.__beVerby(words, focus)
 			else:
 				ret = ()
 			
@@ -75,12 +76,12 @@ class sentenceFigurer(figurer):
 	
 	def __beVerby(self, words, verb):
 		"""
-		As the name applies, this makes the verb more verby, in that we try to figure out what the
+		As the name implies, this makes the verb more verby, in that we try to figure out what the
 		verb is functioning as in the sentence
 		"""
 		
 		#first, let's scan the clause for other verbs to give us an idea of what we're looking at
-		helpers = [v.getVerb() for v in words if v.isVerb()]
+		helpers = [v for v in words if v.isVerb()]
 		
 		#if we have helpers, then we have to do a little more work
 		if (len(helpers) > 0):
@@ -117,8 +118,8 @@ class sentenceFigurer(figurer):
 		"""
 		
 		#attempt to find what this helper is doing
-		helper = helpers[0].get(unknownHelper = True)
-		helperStem = helpers[0].getVerb().getStem()
+		helper = helpers[0].verb.get(unknownHelper = True)
+		helperStem = helpers[0].verb.getStem()
 		
 		#right now, we only handle sentences with 2 verbs
 		
@@ -147,24 +148,24 @@ class sentenceFigurer(figurer):
 					
 					#process the translation into its proper output form
 					if (helperStem == helper["third"] or helperStem == helper["stem"]):
-						self.meaning(ret, "(past perfect)", trans, unicode(verbForm["full"]))
+						self.meaning(ret, "(past perfect)", trans, verbForm["full"])
 					elif (helperStem == helper["subj2"]):
-						self.meaning(ret, "(Konj.2 in past)", trans, unicode(verbForm["full"]))
+						self.meaning(ret, "(Konj.2 in past)", trans, verbForm["full"])
 				
 				return ret
 			elif (helper["stem"] == "werd"):
 				#something going on with werden -> conditional present, passive voice
-				enteredVerbStem = unicode(verb.getVerb().getStem())
-				enteredVerb = unicode(verb.getVerb())
-				verbs = verb.get(returnAll = True)
+				enteredVerbStem = verb.verb.getStem()
+				enteredVerb = verb.verb.word
+				verbs = verb.verb.get(returnAll = True)
+				
+				trans = verb.get()
 				
 				#the conjugated form of the helper
-				helperConj = unicode(helpers[0].getVerb().getStem())
+				helperConj = helpers[0].verb.getStem()
 				
 				for k, h in verbs.iteritems(): #for each helper returned
 					for v in h: #for each verb
-						trans = data.lookup(unicode(v['full'])).get("verb")
-					
 						if (helperConj == helper["subj2"]):
 							#conditional (present/future)
 							if (enteredVerb == v["full"]):
@@ -174,24 +175,11 @@ class sentenceFigurer(figurer):
 							if (enteredVerb == v["full"]):
 								self.meaning(ret, "(future)", trans, enteredVerb)
 						elif (helperConj == helper["preterite"]):
-							#passive
 							if (enteredVerbStem == v["perfect"]):
 								self.meaning(ret, "(passive)", trans, enteredVerb)
 				
-		#we couldn't even find the helper...that's discouraging
 		return ret
 		
 	def meaning(self, retList, tense, en, de):
 		for t in en:
 			retList.append(dict({"en": tense + " " + t["en"], "de": de}))
-		
-class wordFigurer(figurer):
-	@classmethod
-	def canTranslate(cls, query):
-		"""A basic checker to see if it's even worthwhile running this on the query"""
-		
-		#more or less, compounds are going to be more than 6 letters
-		return (len(query) > 6)
-	
-	def translate(self):
-		print "word"

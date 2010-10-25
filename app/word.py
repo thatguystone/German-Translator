@@ -24,8 +24,8 @@ class word(object):
 	def exists(self):
 		return self.translations.exists() or self.verb.exists()
 	
-	def get(self):
-		return self.translations.get()
+	def get(self, pos = "all"):
+		return self.translations.get(pos)
 	
 	def isAdjAdv(self):
 		return self.__isA("adjadv")
@@ -35,6 +35,9 @@ class word(object):
 	
 	def isVerb(self):
 		return self.verb.exists()
+	
+	def isHelper(self):
+		return self.verb.isHelper()
 		
 	def __isA(self, pos):
 		words = self.translations.get()
@@ -42,7 +45,10 @@ class word(object):
 			return False
 		
 		return bool(len([w for w in words if w["pos"] == pos]) > 0)
-
+	
+	def getWord(self):
+		"""Gets the original word that was entered, in its unmodified state"""
+		return self.word
 class internetInterface(object):
 	"""
 	Useful for things that hit the internet and store results from the queries in the local
@@ -269,6 +275,7 @@ class canoo(internetInterface):
 	helper = "haben"
 	helperHaben = "haben"
 	helperSein = "sein"
+	helperWerden = "werden"
 	
 	def exists(self):
 		self.__search()
@@ -292,6 +299,14 @@ class canoo(internetInterface):
 				break
 		
 		return ret
+	
+	def isHelper(self):
+		if (self.exists()):
+			for helper in (canoo.helperHaben, canoo.helperSein, canoo.helperWerden):
+				if (self.get(unknownHelper = True)[0]["full"] == helper):
+					return True
+		
+		return False
 	
 	def get(self, unknownHelper = False, returnAll = False):
 		"""
@@ -352,6 +367,7 @@ class canoo(internetInterface):
 			
 			if (len(rows) > 0):
 				#run through all the returned rows
+				#only do this if we have any -- otherwise, the dictionary was instantiated empty, so we're clear
 				for r in rows:
 					tmp = dict()
 					if (r.has_key("id")): #remove the id row, we don't need it
@@ -366,8 +382,6 @@ class canoo(internetInterface):
 					
 					#save the word to our helper verb table
 					self.words[r["hilfsverb"]].append(tmp)
-			else:
-				self.words = []
 	
 	def __scrapeCanoo(self):
 		"""Grabs the inflections of all verbs that match the query"""
@@ -424,6 +438,7 @@ class canoo(internetInterface):
 		
 		#scrape the page with information about the verb
 		url = pq(a).attr.href
+		
 		page = self.__getCanooPage('http://www.canoo.net/' + url)
 		
 		return self.__processPage(page)
@@ -433,7 +448,6 @@ class canoo(internetInterface):
 		
 		#find the table holding the present-forms of the verb
 		q = page.find("div#Presens div table tr")
-		stem = self.getStem(q.eq(3).find("td").eq(1).text())
 		third = self.getStem(q.eq(5).find("td").eq(1).text())
 		
 		#find the preterite
@@ -447,7 +461,10 @@ class canoo(internetInterface):
 		
 		#get the full form of the verb
 		full = page.find("h1.Headline i").text()
-
+		
+		#the stem is just the full form, minus the -en
+		stem = self.getStem(full)
+		
 		#attempt to get the helper verb
 		helper = self.helperHaben if (page.find("div#Verb").prevAll("table").text().find("Hilfsverb: haben") != -1) else self.helperSein
 		

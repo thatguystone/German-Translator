@@ -47,6 +47,9 @@ class sentenceFigurer(figurer):
 		#let's see
 		focus, words = self.__findFocus(words)
 		
+		if (focus == None):
+			return ()
+		
 		#we can't do much for translating nouns, so just return their translations (and if it's compound,
 		#it will be resolved via the lookup)
 		if ((focus.isNoun() or focus.isAdjAdv()) and not focus.isVerb()):

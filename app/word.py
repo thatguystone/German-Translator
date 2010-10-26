@@ -217,8 +217,10 @@ class cache(internetInterface):
 		
 		word = self.word.lower()
 		
+		print word, "==>", en, "--", de
+		
 		#i'm allowing three spaces before i throw a word as out invalid
-		if (len(en.strip().split(" ")) > 2 or len(de.strip().split(" ")) > 2):
+		if (len(en.strip().split(" ")) > 3 or len(de.strip().split(" ")) > 3):
 			return False
 		
 		if (en.lower() == word or de.lower() == word):
@@ -243,7 +245,7 @@ class cache(internetInterface):
 	#words that need a space after them in order to be removed
 	cleanupWords = [
 		#words that just need spaces to be removed
-		"der", "die", "das", "to", "zu", "zur", "zum",
+		"der", "die", "das", "to", "zu", "zur", "zum", "sich",
 		
 		#words that should always be removed
 		"sth.", "etw.", "jmdm.", "jmdn.", "jmds.", "so.", "adj.",
@@ -330,11 +332,14 @@ class canoo(internetInterface):
 		
 		if (word == None):
 			ret = self.word
+		elif (type(word) == pq):
+			word.find("br").replaceWith("\n")
+			ret = word.text()
 		else:
 			ret = word
 		
-		if (ret.find(" ") >= 0):
-			ret = ret.split(" ")[0]
+		if (ret.find("\n") >= 0):
+			ret = ret.split("\n")[0]
 		
 		#start by removing any endings we could have when conjugated
 		for end in ("est", "et", "en", "e", "st", "t"): #order matters in this list
@@ -520,16 +525,16 @@ class canoo(internetInterface):
 		
 		#find the table holding the present-forms of the verb
 		q = page.find("div#Presens div table tr")
-		third = self.getStem(q.eq(5).find("td").eq(1).text())
+		third = self.getStem(q.eq(5).find("td").eq(1))
 		
 		#find the preterite
 		q = page.find("div#Praeteritum div table tr")
-		preterite = self.getStem(q.eq(3).find("td").eq(1).text())
-		subj2 = self.getStem(q.eq(3).find("td").eq(3).text())
+		preterite = self.getStem(q.eq(3).find("td").eq(1))
+		subj2 = self.getStem(q.eq(3).find("td").eq(3))
 		
 		#find the perfekt
 		q = page.find("div#Perfect table tr")
-		perfect = self.getStem(q.eq(4).find("td").eq(2).text())
+		perfect = self.getStem(q.eq(4).find("td").eq(2))
 		
 		#get the full form of the verb
 		full = page.find("h1.Headline i").text()

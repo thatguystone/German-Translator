@@ -44,34 +44,60 @@ class sentenceFigurer(figurer):
 		#start off by getting the different words in the sentence
 		words = self.query.replace("-", "").split(" ") #combine dashed-words into one word for easier access
 		
-		#let's find which word they're asking about
-		for w, i in zip(words, range(len(words))):
-			if (w.find("*") >= 0):
-				index = i
-				break
-		
-		#if we didn't find a word to figure out
-		if (not "index" in locals()):
-			focus, index = self.__findFocus(words)
-		else:
-			#let's remove all the stars and start figuring out what we're looking at
-			words = [word.word(w.replace("*", "")) for w in words]
-			
-			#let's remove the word we're focusing on
-			focus = words[index]
-			words.pop(index)
+		#let's see
+		focus, words = self.__findFocus(words)
 		
 		#we can't do much for translating nouns, so just return their translations (and if it's compound,
 		#it will be resolved via the lookup)
 		if ((focus.isNoun() or focus.isAdjAdv()) and not focus.isVerb()):
-			ret = focus.get()
+			return focus.get()
 		else: #it's a verb
-			ret = self.__figureVerb(focus, words)
-			
-		return ret
+			return self.__figureVerb(focus, words)
 	
 	def __findFocus(self, words):
-		pass
+		if (len(words) == 1):
+			return (word.word(words[0]), )
+		
+		words = [word.word(w) for w in words]
+		
+		#first, let's attempt to find a verb that's not a helper verb
+		verbs = [w for w in words if w.isVerb() and not w.isHelper()]
+		
+		if (len(verbs) > 0):
+			#if we found some verbs, let's pick out the main one in the sentence
+			focus, rmWords = self.__combineVerbs(verbs)
+			
+			#if we have something, then go ahead and clear it from our search entries
+			if (len(rmWords) > 0):
+				for w in rmWords:
+					words.remove(w)
+			
+			return (focus, words)
+		else:
+			return ()
+			
+	def __combineVerbs(self, verbs):
+		if (len(verbs) == 1):
+			#if we only have one verb, this is a special case...
+			focus = verbs[0] #get our focus verb
+			return (focus, [focus])
+		
+		#attempt to combine the verbs in some meaningful way to see if we find anything
+		#ex: kennen lernen, scheiden lassen, schneiden lassen
+		for i in verbs:
+			for j in verbs:
+				if (i == j):
+					continue
+					
+				tmpWord = word.word(i.word + " " + j.word)
+				#if we didn't find a word (because it just doesn't exist)
+				if (not tmpWord.exists()):
+					continue
+				
+				#oh hey, if we get here, we're definitely looking at a verb combination! yay!
+				return (tmpWord, (i, j))
+		
+		return (None, [])
 	
 	def __figureVerb(self, verb, words):
 		"""Attempts to figure out the tense (and the translation) for the given verb"""
@@ -79,19 +105,12 @@ class sentenceFigurer(figurer):
 		#first, let's scan the clause for other verbs to give us an idea of what we're looking at
 		helpers = [v for v in words if v.isVerb()]
 		
-		if (len(helpers) > 0):
-			return self.__figureVerbHelpers(verb, words)
-		else:
-			return self.__figureVerbWithoutHelper(verb, words)
-	
-	def __figureVerbHelpers(self, verb, words):
-		helpers = [w for w in words if w.isHelper()]
-		
 		if (len(helpers) == 0):
-			return () #well, we're looking at a verb with a helper but we didn't find any helpers....
+			return self.__verbWithoutHelper(verb, words)
 		elif (len(helpers) == 1):
-			#we only have 1 helper, let's just hit all the cases
 			return self.__verbWithSingleHelper(helpers[0], verb)
+		else:
+			return self.__multipleVerbs(helpers, verb)
 	
 	def __verbWithSingleHelper(self, helper, verb):
 		ret = []
@@ -122,6 +141,8 @@ class sentenceFigurer(figurer):
 					self.meaning(ret, "(past perfect)", trans, verbForm["full"])
 				elif (helperConj == helper["subj2"]):
 					self.meaning(ret, "(Konj.2 in past)", trans, verbForm["full"])
+				elif (helperConj == helper["preterite"]):
+					self.meaning(ret, "(Plusquamperfekt)", trans, verbForm["full"])
 			
 		#something going on with werden -> conditional present, passive voice
 		elif (helper["stem"] == "werd"):
@@ -167,7 +188,7 @@ class sentenceFigurer(figurer):
 		
 		return ret
 		
-	def __figureVerbWithoutHelper(self, verb, words):
+	def __verbWithoutHelper(self, verb, words):
 		#we don't have a helper, so let's see what form our verb is taking
 		stem = verb.verb.getStem()
 		forms = verb.verb.get(unknownHelper = True)

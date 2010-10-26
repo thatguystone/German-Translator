@@ -39,23 +39,7 @@ CREATE TABLE `canooWords` (
   KEY `perfect` (`perfect`),
   KEY `third` (`third`),
   KEY `subj2` (`subj2`)
-) ENGINE=MyISAM AUTO_INCREMENT=12 DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `failedSearches`
---
-
-DROP TABLE IF EXISTS `failedSearches`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `failedSearches` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `search` varchar(100) NOT NULL,
-  `source` enum('leo','canoo') NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `search` (`search`,`source`)
-) ENGINE=MyISAM AUTO_INCREMENT=7 DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM AUTO_INCREMENT=6 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -76,7 +60,24 @@ CREATE TABLE `leoWords` (
   UNIQUE KEY `en_2` (`en`,`de`,`pos`),
   KEY `en` (`en`),
   KEY `de` (`de`)
-) ENGINE=MyISAM AUTO_INCREMENT=43 DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM AUTO_INCREMENT=15 DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `searches`
+--
+
+DROP TABLE IF EXISTS `searches`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `searches` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `search` varchar(100) NOT NULL,
+  `source` enum('leo','canoo') NOT NULL,
+  `success` tinyint(1) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `search` (`search`,`source`,`success`)
+) ENGINE=MyISAM AUTO_INCREMENT=13 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
@@ -88,4 +89,4 @@ CREATE TABLE `leoWords` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2010-10-25 16:07:51
+-- Dump completed on 2010-10-26  0:34:31

@@ -15,16 +15,19 @@ class word(object):
 	def __init__(self, word):
 		self.word = word
 		self.verb = canoo(word)
-		
-		if (self.isVerb() and self.verb.exists()):
-			self.translations = cache(self.verb.get(unknownHelper = True)[0]["full"])
-		else:
-			self.translations = cache(word)
+		self.translations = cache(word)
 	
 	def exists(self):
 		return self.translations.exists() or self.verb.exists()
 	
 	def get(self, pos = "all"):
+		#if we have a verb, then add the root translations to the mix
+		#do this on demand -- we only need this information if we're getting translations
+		if (self.isVerb()):
+			full = self.verb.get(unknownHelper = True)[0]["full"]
+			if (full != self.word):
+				self.translations.addTranslations(cache())
+		
 		return self.translations.get(pos)
 	
 	def isAdjAdv(self):
@@ -49,6 +52,7 @@ class word(object):
 	def getWord(self):
 		"""Gets the original word that was entered, in its unmodified state"""
 		return self.word
+	
 class internetInterface(object):
 	"""
 	Useful for things that hit the internet and store results from the queries in the local
@@ -80,12 +84,37 @@ class cache(internetInterface):
 		self.__search()
 		return len(self.words) > 0
 	
+	def addTranslations(self, cache):
+		"""Given another cache object, it adds its translations to this one"""
+		
+		self.__search()
+		self.__storeWords(cache.get())
+	
 	def __search(self):
 		if (self.searchRan):
 			return
 		
 		self.searchRan = True
 		
+		#before we do anything, make sure we haven't already searched for this and failed
+		success = self.db.query("""
+			SELECT `success` FROM `searches`
+			WHERE
+				`search`=%s
+				AND
+				`source`="leo"
+		""", (self.word))
+		
+		#if we have never done this search before
+		if (type(success) == bool):
+			words = self.__scrapeLeo()
+			self.__stashResults(words)
+			if (len(words) == 0):
+				return
+		elif (not success[0]['success']):
+			return
+		
+		#well, if we get here, then we know that we have some words stored
 		words = self.db.query("""
 			SELECT * FROM `leoWords`
 			WHERE
@@ -95,30 +124,25 @@ class cache(internetInterface):
 			;
 		""", (self.word, self.word))
 		
-		if (type(words) != tuple):
-			words = self.__scrapeLeo()
-			self.__stashResults(words)
+		self.__storeWords(words)
+	
+	def __storeWords(self, words):
+		"""
+		Given a list of words, it stores them non-destructively (since we can have words from
+		numerous sources that must be stored independently of each other
+		"""
 		
-		if (len(words) > 0):
-			self.words = words
+		if (type(self.words) != list):
+			self.words = []
+		
+		for w in words:
+			self.words.append(w)
 	
 	def __scrapeLeo(self):
 		if (self.hitInternet):
 			return
 		
 		self.hitInternet = True
-		
-		#before we do anything, make sure we haven't already searched for this and failed
-		failed = self.db.query("""
-			SELECT 1 FROM `failedSearches`
-			WHERE
-				`search`=%s
-				AND
-				`source`="leo"
-		""", (self.word))
-		
-		if (failed):
-			return []
 		
 		#now go and hit leo for the results
 		d = pq(url='http://dict.leo.org/ende?lp=ende&lang=de&searchLoc=0&cmpType=relaxed&sectHdr=on&spellToler=on&search=%s&relink=on' % urllib.quote(self.word))
@@ -147,13 +171,23 @@ class cache(internetInterface):
 		if (len(words) == 0):
 			#nothing was found, record a failed search so we don't do it again
 			self.db.insert("""
-				INSERT IGNORE INTO `failedSearches`
+				INSERT IGNORE INTO `searches`
 				SET
 					`search`=%s,
-					`source`="leo"
+					`source`="leo",
+					`success`=0
 				;
 			""", (self.word))
 		else:
+			self.db.insert("""
+				INSERT IGNORE INTO `searches`
+				SET
+					`search`=%s,
+					`source`="leo",
+					`success`=1
+				;
+			""", (self.word))
+			
 			for w in words:
 				self.db.insert("""
 					INSERT IGNORE INTO `leoWords`
@@ -207,14 +241,15 @@ class cache(internetInterface):
 		return pos
 	
 	#words that need a space after them in order to be removed
-	spaceWords = ["der", "die", "das", "to", "zu", "zur", "zum"]
-	
-	#words to always remove
-	unspacedWords = ["sth.", "etw.", "jmdm.", "jmdn.", "jmds.", "so.", "adj."]
-	
-	#words that can have a space before or after to remove
-	#and stupid python 2.* requires unicode strings for anything fun...ugh
-	egalSpace = ["bis", "durch", "entlang", u"für", "gegen", "ohne", "um", "aus", "ausser",
+	cleanupWords = [
+		#words that just need spaces to be removed
+		"der", "die", "das", "to", "zu", "zur", "zum",
+		
+		#words that should always be removed
+		"sth.", "etw.", "jmdm.", "jmdn.", "jmds.", "so.", "adj.",
+		
+		#funner words
+		"bis", "durch", "entlang", u"für", "gegen", "ohne", "um", "aus", "ausser",
 		u"außer", "bei", "beim", u"gegenüber", "mit", "nach", "seit", "von", "zu",
 		"an", "auf", "hinter", "in", "neben", u"über", "unter", "vor", "zwischen",
 		"statt", "anstatt", "ausserhalb", u"außerhalb", "trotz", u"während", "wegen"
@@ -234,28 +269,37 @@ class cache(internetInterface):
 		
 		#remove the stuff that's in the brackets (usually just how the word is used / formality / time / etc)
 		word = re.sub(r'(\[.*\])', "", word)
+		#and the stuff in parenthesis
+		word = re.sub(r'(\(.*\))', "", word)
 		
 		#remove anything following a dash surrounded by spaces -- this does not remove things that END in dashes
 		loc = word.find(" -")
 		if (loc >= 0):
 			word = word[:loc]
 		
-		#get rid of the extra words that aren't needed but that could possibly conflict with strings inside other words (so give them a trailing space)
-		for w in self.spaceWords:
-			word = word.replace(w + " ", "").strip()
-		
-		#and the words that aren't needed and can't conflict with other words
-		for w in self.unspacedWords:
-			word = word.replace(w, "").strip()
-		
-		#now, let's lose the hanging words that just get in the way
-		for w in self.egalSpace:
-			word = word.replace(w + " ", "").replace(" " + w, "").strip()
-		
-		#remove anything following a "|"
+		#remove anything following a "|" -- there's gotta be a better way to do this...meh...iteration?
 		loc = word.find("|")
 		if (loc >= 0):
 			word = word[:loc]
+		
+		#see if we were given a plural that we need to purge
+		loc = word.rfind(" die ")
+		if (loc > 2): #just go for 2, something beyond the beginning of the string but before the end
+			word = word[:loc]
+		
+		#remove extra words from the definition
+		words = word.split(" ")
+		for w in words:
+			if (len(w.strip()) == 0):
+				words.remove(w)
+			else:
+				#and the words that aren't needed and can't conflict with other words
+				for replace in self.cleanupWords:
+					if (w == replace):
+						words.remove(replace)
+						break
+
+		word = " ".join(words)
 		
 		return word.strip("/").strip("-").strip()
 	
@@ -343,7 +387,32 @@ class canoo(internetInterface):
 		
 		stem = self.getStem()
 		
-		if (config.getboolean("deutsch", "enable.cache")):
+		#for now, we're going to allow these queries as I believe (this has yet to be tested)
+		#that things will not be sped up if I move my search cache checker here -- verbs
+		#come in all forms, and the chances that we did a search on the exact form we have are
+		#1:6....so let's just risk it
+		
+		rows = self.db.query("""
+			SELECT * FROM `canooWords`
+			WHERE
+				`full`=%s
+				OR
+				`stem`=%s
+				OR
+				`preterite`=%s
+				OR
+				`perfect`=%s
+				OR
+				`third`=%s
+				OR
+				`subj2`=%s
+			;
+		""", (self.word, stem, stem, stem, stem, stem))
+		
+		if (type(rows) != tuple):
+			#it's entirely possible that we're removing verb endings too aggressively, so make a pass
+			#on the original verb we were given, just for safety (and to save time -- hitting canoo
+			#is INCREDIBLY expensive)
 			rows = self.db.query("""
 				SELECT * FROM `canooWords`
 				WHERE
@@ -359,29 +428,30 @@ class canoo(internetInterface):
 					OR
 					`subj2`=%s
 				;
-			""", (self.word, stem, stem, stem, stem, stem))
-			
-			if (type(rows) != tuple):
-				rows = self.__scrapeCanoo()
-				self.__stashResults(rows)
-			
-			if (len(rows) > 0):
-				#run through all the returned rows
-				#only do this if we have any -- otherwise, the dictionary was instantiated empty, so we're clear
-				for r in rows:
-					tmp = dict()
-					if (r.has_key("id")): #remove the id row, we don't need it
-						del r['id'] 
-					
-					#build up our temp list of column names (k) associated with words (v)
-					for k, v in r.iteritems():
-						tmp[k] = v
-					
-					if (not r["hilfsverb"] in self.words.keys()):
-						self.words[r["hilfsverb"]] = []
-					
-					#save the word to our helper verb table
-					self.words[r["hilfsverb"]].append(tmp)
+			""", (self.word, self.word, self.word, self.word, self.word, self.word))
+		
+		#but if we still haven't found anything...we must give up :(
+		if (type(rows) != tuple):
+			rows = self.__scrapeCanoo()
+			self.__stashResults(rows)
+		
+		if (len(rows) > 0):
+			#run through all the returned rows
+			#only do this if we have any -- otherwise, the dictionary was instantiated empty, so we're clear
+			for r in rows:
+				tmp = dict()
+				if (r.has_key("id")): #remove the id row, we don't need it
+					del r['id'] 
+				
+				#build up our temp list of column names (k) associated with words (v)
+				for k, v in r.iteritems():
+					tmp[k] = v
+				
+				if (not r["hilfsverb"] in self.words.keys()):
+					self.words[r["hilfsverb"]] = []
+				
+				#save the word to our helper verb table
+				self.words[r["hilfsverb"]].append(tmp)
 	
 	def __scrapeCanoo(self):
 		"""Grabs the inflections of all verbs that match the query"""
@@ -393,11 +463,13 @@ class canoo(internetInterface):
 		
 		#first, check to see if we've failed on this search before
 		failed = self.db.query("""
-			SELECT 1 FROM `failedSearches`
+			SELECT 1 FROM `searches`
 			WHERE
 				`search`=%s
 				AND
 				`source`="canoo"
+				AND
+				`success`=0
 		""", (self.word))
 		
 		if (failed):
@@ -484,13 +556,23 @@ class canoo(internetInterface):
 		if (len(res) == 0):
 			#nothing was found, record a failed search so we don't do it again
 			self.db.insert("""
-				INSERT IGNORE INTO `failedSearches`
+				INSERT IGNORE INTO `searches`
 				SET
 					`search`=%s,
-					`source`="canoo"
+					`source`="canoo",
+					`success`=0
 				;
 			""", (self.word))
 		else:
+			self.db.insert("""
+				INSERT IGNORE INTO `searches`
+				SET
+					`search`=%s,
+					`source`="canoo",
+					`success`=1
+				;
+			""", (self.word))
+			
 			#we found some stuff, so save it to the db
 			for inflect in res:
 				self.db.insert("""

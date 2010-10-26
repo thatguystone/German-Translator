@@ -217,8 +217,6 @@ class cache(internetInterface):
 		
 		word = self.word.lower()
 		
-		print word, "==>", en, "--", de
-		
 		#i'm allowing three spaces before i throw a word as out invalid
 		if (len(en.strip().split(" ")) > 3 or len(de.strip().split(" ")) > 3):
 			return False

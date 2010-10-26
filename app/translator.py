@@ -77,7 +77,7 @@ class sentenceFigurer(figurer):
 			
 			return (focus, words)
 		else:
-			return ()
+			return ((), )
 			
 	def __combineVerbs(self, verbs):
 		if (len(verbs) == 1):

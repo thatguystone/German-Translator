@@ -13,9 +13,9 @@ class word(object):
 	"""Encapsulates a word to get all the information about it"""
 	
 	def __init__(self, word):
-		self.word = word
-		self.verb = canoo(word)
-		self.translations = cache(word)
+		self.word = utf8.encode(word)
+		self.verb = canoo(self.word)
+		self.translations = cache(self.word)
 	
 	def exists(self):
 		return self.translations.exists() or self.verb.exists()
@@ -26,7 +26,7 @@ class word(object):
 		if (self.isVerb()):
 			full = self.verb.get(unknownHelper = True)[0]["full"]
 			if (full != self.word):
-				self.translations.addTranslations(cache())
+				self.translations.addTranslations(cache(full))
 		
 		return self.translations.get(pos)
 	
@@ -145,7 +145,8 @@ class cache(internetInterface):
 		self.hitInternet = True
 		
 		#now go and hit leo for the results
-		d = pq(url='http://dict.leo.org/ende?lp=ende&lang=de&searchLoc=0&cmpType=relaxed&sectHdr=on&spellToler=on&search=%s&relink=on' % urllib.quote(self.word))
+		word = self.word.encode("utf8")
+		d = pq(url='http://dict.leo.org/ende?lp=ende&lang=de&searchLoc=0&cmpType=relaxed&sectHdr=on&spellToler=on&search=%s&relink=on' % urllib.quote(word))
 		rows = []
 		for row in d.find("tr[valign=top]"):
 			#extended translations

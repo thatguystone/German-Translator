@@ -12,10 +12,16 @@ import utf8
 class word(object):
 	"""Encapsulates a word to get all the information about it"""
 	
-	def __init__(self, word):
+	def __init__(self, word, loc = -1, numWords = -1):
 		self.word = utf8.encode(word)
 		self.verb = canoo(self.word)
 		self.translations = cache(self.word)
+		
+		#these are useful for doing calculations with word locations in sentences
+		#in order to figure out if something is a verb or just a noun hanging out in
+		#the middle
+		self.loc = loc
+		self.numWords = numWords
 	
 	def exists(self):
 		return self.translations.exists() or self.verb.exists()
@@ -37,7 +43,25 @@ class word(object):
 		return self.__isA("noun")
 	
 	def isVerb(self):
-		return self.verb.exists()
+		#check to see if we are captalized -> nice indication we're not a verb
+		if (self.word[0] >= 'A' and self.word[0] <= 'Z'):
+			#make sure we're not at the beginning of a sentence -- that would be embarassing
+			if (self.loc != 0):
+				return False
+		
+		#if we exist, then check our location in the sentence to see the likelihood of being
+		#a verb
+		if (self.verb.exists()):
+			if (self.loc == -1 or self.numWords == -1):
+				return True #not much we can do, we don't have word locations, so just use what we got from canoo
+			
+			#check its location in the sentence
+			loc = self.loc / self.numWords #get a fraction of where we are
+			if ((config.getfloat("deutsch", "word.verbStart") / 100) < loc or
+				(1 - (config.getfloat("deutsch", "word.verbEnd") / 100)) > loc):
+					return True
+			
+		return False
 	
 	def isHelper(self):
 		return self.verb.isHelper()

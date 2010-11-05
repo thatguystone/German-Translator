@@ -42,7 +42,10 @@ class sentenceFigurer(figurer):
 		"""Assumes we can translate it, then runs a sentence guesser on it"""
 		
 		#start off by getting the different words in the sentence
-		words = self.query.replace("-", "").split(" ") #combine dashed-words into one word for easier access
+		#combine dashed-words into one word for easier access
+		rawWords = self.query.replace("-", "").split(" ")
+		numWords = len(rawWords)
+		words = [word.word(w, i, numWords) for w, i in zip(rawWords, range(0, numWords))]
 		
 		#let's see
 		focus, words = self.__findFocus(words)
@@ -58,13 +61,16 @@ class sentenceFigurer(figurer):
 			return self.__figureVerb(focus, words)
 	
 	def __findFocus(self, words):
+		#special cases -- for none or 1 found
+		if (len(words) == 0):
+			return (None, )
 		if (len(words) == 1):
-			return (word.word(words[0]), )
-		
-		words = [word.word(w) for w in words]
+			return (word.word(words[0]), ())
 		
 		#first, let's attempt to find a verb that's not a helper verb
 		verbs = [w for w in words if w.isVerb() and not w.isHelper()]
+		
+		print [w.word for w in verbs]
 		
 		if (len(verbs) > 0):
 			#if we found some verbs, let's pick out the main one in the sentence
@@ -77,7 +83,12 @@ class sentenceFigurer(figurer):
 			
 			return (focus, words)
 		else:
-			return ((), )
+			verbs = [w for w in words if w.isVerb()]
+			
+			if (len(verbs) == 0):
+				return (None, None)
+			elif (len(verbs) == 1):
+				return (verbs[0], None)
 			
 	def __combineVerbs(self, verbs):
 		if (len(verbs) == 1):
@@ -89,6 +100,7 @@ class sentenceFigurer(figurer):
 		#ex: kennen lernen, scheiden lassen, schneiden lassen
 		for i in verbs:
 			for j in verbs:
+				#if we're comparing a word to itself...well, that won't work
 				if (i == j):
 					continue
 					

@@ -525,7 +525,7 @@ class canoo(internetInterface):
 		if (p.find("h1.Headline").text() != u"Wörterbuch Wortformen"):
 			if(p.find("h1.Headline").text().find(u"Keine Einträge gefunden") >= 0
 				or
-				p.find("div#WordClass").text() == None
+				len(p.find("div#WordClass[title=Verb]")) == 0
 			):
 				pass #nothing found
 			else:
@@ -567,7 +567,7 @@ class canoo(internetInterface):
 		present = self.__pyQueryGetTable(tables, u"Präsens")
 		
 		#if we couldn't find a non-separable, try a separable
-		if (present.text() == None):
+		if (len(present) == 0):
 			#and the column moves one to the right (make room for "...dass")
 			present = self.__pyQueryGetTable(tables, u"Präsens  Nebensatz") #there are two spaces in these table headers....wtf?
 			separable = True
@@ -606,6 +606,8 @@ class canoo(internetInterface):
 		#make sure these are python-"static" (*canoo* instead of *self*)
 		if (canoo.lastCanooLoad != -1 and ((time.clock() - self.lastCanooLoad) < canoo.canooWait)):
 			time.sleep(canoo.canooWait - (time.clock() - self.lastCanooLoad))
+		
+		print url
 		
 		canoo.lastCanooLoad = time.clock()
 		return pq(url)

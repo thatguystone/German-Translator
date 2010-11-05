@@ -47,8 +47,14 @@ class sentenceFigurer(figurer):
 		numWords = len(rawWords)
 		words = [word.word(w, i, numWords) for w, i in zip(rawWords, range(0, numWords))]
 		
+		#let's do a quick check to see if we have a separable prefix at the end of the sentence
+		prefix = None
+		if (words[len(words) - 1].isSeparablePrefix()):
+			prefix = words[len(words) - 1]
+			words.remove(prefix)
+		
 		#let's see
-		focus, words = self.__findFocus(words)
+		focus, words = self.__findFocus(words, prefix)
 		
 		if (focus == None):
 			return ()
@@ -60,35 +66,56 @@ class sentenceFigurer(figurer):
 		else: #it's a verb
 			return self.__figureVerb(focus, words)
 	
-	def __findFocus(self, words):
+	def __findFocus(self, words, prefix):
+		"""
+		Goes through all the words in the sentence and picks out the verbs (and adds on the prefix
+		(if it exists) to the first verb found).  If no verbs are found (besides helpers), then we
+		assume the helpers are being used as regular verbs, and we return those as a special case.
+		Otherwise, we go through and attempt to find verb combinations (ie. `kennen lernen`), and
+		return what we find, the first major verb found being the focus.
+		"""
+		
 		#special cases -- for none or 1 found
 		if (len(words) == 0):
 			return (None, )
 		if (len(words) == 1):
 			return (word.word(words[0]), ())
 		
-		#first, let's attempt to find a verb that's not a helper verb
+		#first, let's attempt to find a verb that's not a helper
 		verbs = [w for w in words if w.isVerb() and not w.isHelper()]
 		
-		print [w.word for w in verbs]
-		
+		#if there are other verbs in the sentence that are not helpers
 		if (len(verbs) > 0):
-			#if we found some verbs, let's pick out the main one in the sentence
-			focus, rmWords = self.__combineVerbs(verbs)
-			
-			#if we have something, then go ahead and clear it from our search entries
-			if (len(rmWords) > 0):
-				for w in rmWords:
-					words.remove(w)
+			#if we're add a prefix (and thus skipping verb combining)
+			if (prefix != None):
+				#the prefix always combines with the first word in the sentence
+				verb = verbs[0]
+				focus = word.word(prefix.word + verb.word, verb.loc, verb.numWords)
+				words.remove(verb)
+			else: #we're going for verb combining, just to make sure
+				#if we found some verbs, let's pick out the main one in the sentence
+				focus, rmWords = self.__combineVerbs(verbs)
+				
+				#if we have something, then go ahead and clear it from our search entries
+				if (len(rmWords) > 0):
+					for w in rmWords:
+						words.remove(w)
 			
 			return (focus, words)
-		else:
+		else: #we only have helper verbs
 			verbs = [w for w in words if w.isVerb()]
 			
+			#it's possible we don't have any verbs...which is an ERROR
 			if (len(verbs) == 0):
-				return (None, None)
+				return (None, [])
 			elif (len(verbs) == 1):
-				return (verbs[0], None)
+				#if our helper has a prefix (ie. `anhaben`)
+				if (prefix != None):
+					verb = verbs[0]
+					return (word.word(prefix.word + verb.word, verb.loc, verb.numWords), [])
+				else:
+					#no prefix on the helper, he's just himself. Cool.
+					return (verbs[0], [])
 			
 	def __combineVerbs(self, verbs):
 		if (len(verbs) == 1):

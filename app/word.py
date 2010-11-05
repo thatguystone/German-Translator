@@ -65,7 +65,16 @@ class word(object):
 	
 	def isHelper(self):
 		return self.verb.isHelper()
-		
+	
+	def isSeparablePrefix(self):
+		"""Not much I can do about this one, we just have a long list of prefixes to check."""
+		return self.word.lower() in [
+			"ab", "an", "auf", "aus", "bei", "da", "dabei", "daran", "durch", "ein", "empor", "entgegen",
+			"entlang", "fehl", "fest", "fort", u"gegenüber", "gleich", "her", "herauf", "hinter",
+			"hinzu", "los", "mit", "nach", "statt", u"über", "um", "unter", "vor", "weg", "wider",
+			"wieder", "zu", u"zurück", "zusammen", "zwischen"
+		]
+	
 	def __isA(self, pos):
 		words = self.translations.get()
 		if (len(words) == 0):
@@ -254,9 +263,7 @@ class cache(internetInterface):
 	def __pos(self, enExt, deExt):
 		de = deExt
 		en = enExt
-		if (en.find("prep.") >= 0):
-			pos = "prep"
-		elif (en.find("to ") >= 0):
+		if (en.find("to ") >= 0):
 			pos = "verb"
 		elif (de.find("der") >= 0 or de.find("die") >= 0 or de.find("das") >= 0):
 			pos = "noun"
@@ -518,7 +525,7 @@ class canoo(internetInterface):
 		if (p.find("h1.Headline").text() != u"Wörterbuch Wortformen"):
 			if(p.find("h1.Headline").text().find(u"Keine Einträge gefunden") >= 0
 				or
-				p.find("div#Verb").text() == None
+				p.find("div#WordClass").text() == None
 			):
 				pass #nothing found
 			else:
@@ -543,21 +550,44 @@ class canoo(internetInterface):
 		
 		return self.__processPage(page)
 	
+	def __pyQueryGetTable(self, tables, header):
+		"""Canoo changed its layout...now I have to do more brute-forcing to grab the info"""
+		return tables.filter(lambda i: pq(this).text() == header).closest("table").find("tr")
+	
 	def __processPage(self, page):
 		#just use "q" for a basic "query" holder
 		
-		#find the table holding the present-forms of the verb
-		q = page.find("div#Presens div table tr")
-		third = self.getStem(q.eq(5).find("td").eq(1))
+		#CANOO CHANGED THEIR PAGE LAYOUT!! ARGGGGGGGETHHHHHHH!
+		
+		#find the tables holding all the info
+		tables = page.find("td.colTitle")
+		
+		#attempt to figure out, by ourselves, if we're a separable verb or not
+		separable = False
+		present = self.__pyQueryGetTable(tables, u"Präsens")
+		
+		#if we couldn't find a non-separable, try a separable
+		if (present.text() == None):
+			#and the column moves one to the right (make room for "...dass")
+			present = self.__pyQueryGetTable(tables, u"Präsens  Nebensatz") #there are two spaces in these table headers....wtf?
+			separable = True
+		
+		#go for the third person
+		third = self.getStem(present.eq(5).find("td").eq(1))
 		
 		#find the preterite
-		q = page.find("div#Praeteritum div table tr")
-		preterite = self.getStem(q.eq(3).find("td").eq(1))
-		subj2 = self.getStem(q.eq(3).find("td").eq(3))
+		if (separable):
+			q = self.__pyQueryGetTable(tables, u"Präteritum  Nebensatz") #there are two spaces in these table headers....wtf?
+			preterite = self.getStem(q.eq(3).find("td").eq(2))
+			subj2 = self.getStem(q.eq(3).find("td").eq(4))
+		else:
+			q = self.__pyQueryGetTable(tables, u"Präteritum")
+			preterite = self.getStem(q.eq(3).find("td").eq(1))
+			subj2 = self.getStem(q.eq(3).find("td").eq(3))
 		
 		#find the perfekt
-		q = page.find("div#Perfect table tr")
-		perfect = self.getStem(q.eq(4).find("td").eq(2))
+		q = self.__pyQueryGetTable(tables, "Perfekt")
+		perfect = self.getStem(q.eq(3).find("td").eq(2))
 		
 		#get the full form of the verb
 		full = page.find("h1.Headline i").text()
@@ -566,7 +596,7 @@ class canoo(internetInterface):
 		stem = self.getStem(full)
 		
 		#attempt to get the helper verb
-		helper = self.helperHaben if (page.find("div#Verb").prevAll("table").text().find("Hilfsverb: haben") != -1) else self.helperSein
+		helper = self.helperHaben if (page.find("div#WordClass").prevAll("table").text().find("Hilfsverb: haben") != -1) else self.helperSein
 		
 		return dict(full = full, hilfsverb = helper, stem = stem, preterite = preterite, perfect = perfect, third = third, subj2 = subj2)
 	
@@ -576,7 +606,7 @@ class canoo(internetInterface):
 		#make sure these are python-"static" (*canoo* instead of *self*)
 		if (canoo.lastCanooLoad != -1 and ((time.clock() - self.lastCanooLoad) < canoo.canooWait)):
 			time.sleep(canoo.canooWait - (time.clock() - self.lastCanooLoad))
-			
+		
 		canoo.lastCanooLoad = time.clock()
 		return pq(url)
 	

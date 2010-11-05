@@ -39,7 +39,7 @@ CREATE TABLE `canooWords` (
   KEY `perfect` (`perfect`),
   KEY `third` (`third`),
   KEY `subj2` (`subj2`)
-) ENGINE=MyISAM AUTO_INCREMENT=11 DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM AUTO_INCREMENT=5 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -60,7 +60,7 @@ CREATE TABLE `leoWords` (
   UNIQUE KEY `en_2` (`en`,`de`,`pos`),
   KEY `en` (`en`),
   KEY `de` (`de`)
-) ENGINE=MyISAM AUTO_INCREMENT=144 DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM AUTO_INCREMENT=29 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -77,7 +77,7 @@ CREATE TABLE `searches` (
   `success` tinyint(1) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `search` (`search`,`source`,`success`)
-) ENGINE=MyISAM AUTO_INCREMENT=99 DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM AUTO_INCREMENT=14 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
@@ -89,4 +89,4 @@ CREATE TABLE `searches` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2010-11-05 15:55:46
+-- Dump completed on 2010-11-05 17:14:20

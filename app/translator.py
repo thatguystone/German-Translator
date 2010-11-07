@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from config import config
 import word
 import utf8
@@ -77,10 +78,10 @@ class sentenceFigurer(figurer):
 		
 		#special cases -- for none or 1 found
 		if (len(words) == 0):
-			return (None, )
+			return (None, ())
 		if (len(words) == 1):
 			return (word.word(words[0]), ())
-		
+			
 		#first, let's attempt to find a verb that's not a helper
 		verbs = [w for w in words if w.isVerb() and not w.isHelper()]
 		
@@ -91,7 +92,12 @@ class sentenceFigurer(figurer):
 				#the prefix always combines with the first word in the sentence
 				verb = verbs[0]
 				focus = word.word(prefix.word + verb.word, verb.loc, verb.numWords)
-				words.remove(verb)
+				
+				#should we ignore the prefix because it does nothing?
+				if (focus.isVerb()):
+					words.remove(verb)
+				else:
+					focus = verb
 			else: #we're going for verb combining, just to make sure
 				#if we found some verbs, let's pick out the main one in the sentence
 				focus, rmWords = self.__combineVerbs(verbs)
@@ -107,15 +113,24 @@ class sentenceFigurer(figurer):
 			
 			#it's possible we don't have any verbs...which is an ERROR
 			if (len(verbs) == 0):
-				return (None, [])
+				return (None, ())
 			elif (len(verbs) == 1):
 				#if our helper has a prefix (ie. `anhaben`)
 				if (prefix != None):
 					verb = verbs[0]
-					return (word.word(prefix.word + verb.word, verb.loc, verb.numWords), [])
+					sepVerb = word.word(prefix.word + verb.word, verb.loc, verb.numWords)
+					
+					#make sure our separable verb is actually a verb
+					if (sepVerb.isVerb()):
+						return (sepVerb, ())
+						
+					return (verb, ())
 				else:
 					#no prefix on the helper, he's just himself. Cool.
-					return (verbs[0], [])
+					return (verbs[0], ())
+			else:
+				#there are numerous helpers, just use the last as the focus
+				return (verbs[len(verbs) - 1], verbs[:len(verbs) - 1])
 			
 	def __combineVerbs(self, verbs):
 		if (len(verbs) == 1):
@@ -179,7 +194,7 @@ class sentenceFigurer(figurer):
 				trans = word.word(verbForm["full"]).get("verb")
 				
 				#process the translation into its proper output form
-				if (helperConj == helper["third"] or helperConj == helper["stem"]):
+				if (helperConj in (helper["third"], helper["first"], helper["stem"])):
 					self.meaning(ret, "(past perfect)", trans, verbForm["full"])
 				elif (helperConj == helper["subj2"]):
 					self.meaning(ret, "(Konj.2 in past)", trans, verbForm["full"])
@@ -214,7 +229,7 @@ class sentenceFigurer(figurer):
 							self.meaning(ret, "(fut./pres. conditional)", trans, v["full"])
 						
 						#if: wird
-						elif (helperConj in (helper["third"], helper["stem"])):
+						elif (helperConj in (helper["third"], helper["first"], helper["stem"])):
 							self.meaning(ret, "(future)", trans, v["full"])
 					
 					#the stem has been conjugated to past tense: gesehen
@@ -225,7 +240,7 @@ class sentenceFigurer(figurer):
 							self.meaning(ret, "(past passive)", trans, v["full"])
 						
 						#if: wird
-						elif (helperConj in (helper["third"], helper["stem"])):
+						elif (helperConj in (helper["third"], helper["first"], helper["stem"])):
 							self.meaning(ret, "(present passive)", trans, v["full"])
 		
 		return ret
@@ -246,7 +261,7 @@ class sentenceFigurer(figurer):
 			#let's take a look at our forms and see what we can find
 			if (form["preterite"] == stem):
 				self.meaning(ret, "(simple past)", trans, verb)
-			elif (form["third"] == stem or form["stem"] == stem):
+			elif (stem in (form["third"], form["first"], form["stem"])):
 				#this might seem a bit weird -- we need to compare our stem to the stem from the site to see if it's present tense
 				#we also use third because that one might conjugate differently, but it's still present tense
 				self.meaning(ret, "(present)", trans, verb)

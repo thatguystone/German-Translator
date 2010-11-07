@@ -1,0 +1,61 @@
+body {
+	background: url(/images/bg.png);
+}
+
+.content {
+	margin: 0px auto;
+	width: 700px;
+}
+	.content .title {
+		background: url(/images/logo.png) no-repeat center;
+		height: 75px;
+	}
+	.content .input {
+		margin: 50px 0px 25px;
+	}
+	.content .input,
+	.content .input input {
+			font-family: Georgia, Sans-serif;
+	}
+		.content .input input.translate {
+			width: 75%;
+		}
+		.content .input input.magic {
+			width: 23%;
+		}
+	
+	.content .translations {
+	}
+	.content .translations.loading {
+		background: url(/images/loading.gif) no-repeat center;
+		height: 32px;
+	}
+		.content .translations.loading table {
+			opacity: .1;
+			filter: alpha(opacity=10);
+		}
+		.content .translations table {
+			margin: 0px auto;
+			border-collapse: collapse;
+		}
+			.content .translations table th {
+				font-weight: bold;
+				border-bottom: 1px solid #000;
+				padding: 5px 50px;
+			}
+			.content .translations table td {
+				border-bottom: 1px solid #000;
+				padding: 3px 10px;
+			}
+			.content .translations table tr:last-child td {
+				border-bottom: 0px;
+			}
+			.content .translations table tr:last-child td[colspan] {
+				text-align: center;
+			}
+		
+	.content .copyright {
+		margin-top: 50px;
+		color: #909090;
+		text-align: center;
+	}

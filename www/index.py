@@ -18,8 +18,9 @@ class RequestHandler(object):
 	
 	def __setupQueryString(self, req):
 		self.qs = dict()
-		for key, value in parse_qsl(req.args):
-			self.qs[key] = value
+		if (req.args != None):
+			for key, value in parse_qsl(req.args):
+				self.qs[key] = value
 		
 		self.jsonp = ("callback" in self.qs)
 	
@@ -33,9 +34,8 @@ class RequestHandler(object):
 	
 	def process(self):
 		#check the first path item to see what we're processing
-		if (len(self.path) == 0):
-			pass #go to the index page
-		elif (self.path[0] == "api"):
+		path = len(self.path)
+		if (path > 0 and self.path[0] == "api"):
 			ret = []
 			if ("input" in self.qs):
 				for t in translator.translate(self.qs["input"]):
@@ -47,9 +47,14 @@ class RequestHandler(object):
 			self.req.write(json.dumps(ret))
 			
 			if (self.jsonp):
-				self.req.write(");");
+				self.req.write(");")
+		elif ("query" in self.qs):
+			#send them to the simplified page
+			self.req.status = 301
+			self.req.headers_out.add("Location", "/" + self.qs["query"])
 		else:
-			pass #nothing to handle, yet
+			page = open(os.path.abspath(os.path.dirname(__file__) + "/index.html"), "r").read()
+			self.req.write(page)
 			
 		return 0
 

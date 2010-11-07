@@ -438,11 +438,13 @@ class canoo(internetInterface):
 				OR
 				`perfect`=%s
 				OR
+				`first`=%s
+				OR
 				`third`=%s
 				OR
 				`subj2`=%s
 			;
-		""", (self.word, stem, stem, stem, stem, stem))
+		""", (self.word, stem, stem, stem, stem, stem, stem))
 		
 		if (type(rows) != tuple):
 			#it's entirely possible that we're removing verb endings too aggressively, so make a pass
@@ -459,11 +461,13 @@ class canoo(internetInterface):
 					OR
 					`perfect`=%s
 					OR
+					`first`=%s
+					OR
 					`third`=%s
 					OR
 					`subj2`=%s
 				;
-			""", (self.word, self.word, self.word, self.word, self.word, self.word))
+			""", (self.word, self.word, self.word, self.word, self.word, self.word, self.word))
 		
 		#but if we still haven't found anything...we must give up :(
 		if (type(rows) != tuple):
@@ -573,6 +577,7 @@ class canoo(internetInterface):
 			separable = True
 		
 		#go for the third person
+		first = self.getStem(present.eq(3).find("td").eq(1))
 		third = self.getStem(present.eq(5).find("td").eq(1))
 		
 		#find the preterite
@@ -598,7 +603,16 @@ class canoo(internetInterface):
 		#attempt to get the helper verb
 		helper = self.helperHaben if (page.find("div#WordClass").prevAll("table").text().find("Hilfsverb: haben") != -1) else self.helperSein
 		
-		return dict(full = full, hilfsverb = helper, stem = stem, preterite = preterite, perfect = perfect, third = third, subj2 = subj2)
+		return dict(
+			full = full,
+			hilfsverb = helper,
+			stem = stem,
+			preterite = preterite,
+			perfect = perfect,
+			first = first,
+			third = third,
+			subj2 = subj2
+		)
 	
 	def __getCanooPage(self, url):
 		"""Canoo has mechanisms to stop scraping, so we have to pause before hit the links too much"""
@@ -606,8 +620,6 @@ class canoo(internetInterface):
 		#make sure these are python-"static" (*canoo* instead of *self*)
 		if (canoo.lastCanooLoad != -1 and ((time.clock() - self.lastCanooLoad) < canoo.canooWait)):
 			time.sleep(canoo.canooWait - (time.clock() - self.lastCanooLoad))
-		
-		print url
 		
 		canoo.lastCanooLoad = time.clock()
 		return pq(url)
@@ -643,6 +655,7 @@ class canoo(internetInterface):
 						`preterite`=%s,
 						`hilfsverb`=%s,
 						`perfect`=%s,
+						`first`=%s,
 						`third`=%s,
 						`subj2`=%s
 					;
@@ -652,6 +665,7 @@ class canoo(internetInterface):
 					inflect["preterite"],
 					inflect["hilfsverb"],
 					inflect["perfect"],
+					inflect["first"],
 					inflect["third"],
 					inflect["subj2"]
 					)

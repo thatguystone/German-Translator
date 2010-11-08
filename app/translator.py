@@ -34,13 +34,28 @@ class sentenceFigurer(object):
 		numWords = len(rawWords)
 		words = [word.word(w, i, numWords) for w, i in zip(rawWords, range(0, numWords))]
 		
-		#do the verb
+		self.__doPrefix(words)
+		
+		#do the verbs
 		(meanings, usedVerbs) = self.__goForTheVerbs(words[:]) #don't let him mutilate my word list!
 		
-		#check for the participles, and apend them to our translations
+		#check for the participles, and append them to our translations
 		[meanings.append(p) for p in self.__goForParticiples(words, usedVerbs)]
 		
 		return meanings
+	
+	def __doPrefix(self, words):
+		#let's do a quick check to see if we have a separable prefix at the end of the sentence
+		prefix = None
+		if (words[len(words) - 1].isSeparablePrefix()):
+			prefix = words[len(words) - 1]
+			words.remove(prefix)
+			
+			#and attach the prefix to the first verb in the sentence
+			for w, i in zip(words, range(0, len(words))):
+				if (w.isVerb()):
+					words[i] = word.word(prefix.word + w.word, w.loc, w.numWords)
+					break
 	
 	"""
 	************************************************************************************************
@@ -73,14 +88,8 @@ class sentenceFigurer(object):
 	
 	def __goForTheVerbs(self, words):
 		"""Picks the verbs out of the sentence and does stuff with them."""
-		#let's do a quick check to see if we have a separable prefix at the end of the sentence
-		prefix = None
-		if (words[len(words) - 1].isSeparablePrefix()):
-			prefix = words[len(words) - 1]
-			words.remove(prefix)
-		
 		#let's see
-		focus, words = self.__findFocus(words, prefix)
+		focus, words = self.__findFocus(words)
 		
 		if (focus == None):
 			return []
@@ -125,7 +134,7 @@ class sentenceFigurer(object):
 		
 		return (meanings, usedVerbs)
 	
-	def __findFocus(self, words, prefix):
+	def __findFocus(self, words):
 		"""
 		Goes through all the words in the sentence and picks out the verbs (and adds on the prefix
 		(if it exists) to the first verb found).  If no verbs are found (besides helpers), then we
@@ -145,32 +154,20 @@ class sentenceFigurer(object):
 		
 		#if there are other verbs in the sentence that are not helpers
 		if (len(verbs) > 0):
-			#if we're add a prefix (and thus skipping verb combining)
-			if (prefix != None):
-				#the prefix always combines with the first word in the sentence
-				verb = verbs[0]
-				focus = word.word(prefix.word + verb.word, verb.loc, verb.numWords)
-				
-				#should we ignore the prefix because it does nothing?
-				if (focus.isVerb()):
-					words.remove(verb)
-				else:
-					focus = verb
-			else: #we're going for verb combining, just to make sure
-				#if we found some verbs, let's pick out the main one in the sentence
-				focus, rmWords = self.__combineVerbs(verbs)
-				
-				#if we didn't get anything from combining
-				if (focus == None):
-					#then our focus is the last word
-					rmWords = verbs
-					focus = rmWords[len(verbs) - 1]
-				
-				#if we have something, then go ahead and clear it from our search entries
-				if (len(rmWords) > 0):
-					for w in rmWords:
-						words.remove(w)
+			#if we found some verbs, let's pick out the main one in the sentence
+			focus, rmWords = self.__combineVerbs(verbs)
 			
+			#if we didn't get anything from combining
+			if (focus == None):
+				#then our focus is the last word
+				rmWords = verbs
+				focus = rmWords[len(verbs) - 1]
+			
+			#if we have something, then go ahead and clear it from our search entries
+			if (len(rmWords) > 0):
+				for w in rmWords:
+					words.remove(w)
+		
 			return (focus, words)
 		else: #we only have helper verbs
 			verbs = [w for w in words if w.isVerb()]
@@ -179,19 +176,8 @@ class sentenceFigurer(object):
 			if (len(verbs) == 0):
 				return (None, [])
 			elif (len(verbs) == 1):
-				#if our helper has a prefix (ie. `anhaben`)
-				if (prefix != None):
-					verb = verbs[0]
-					sepVerb = word.word(prefix.word + verb.word, verb.loc, verb.numWords)
-					
-					#make sure our separable verb is actually a verb
-					if (sepVerb.isVerb()):
-						return (sepVerb, [])
-						
-					return (verb, [])
-				else:
-					#no prefix on the helper, he's just himself. Cool.
-					return (verbs[0], [])
+				#no prefix on the helper, he's just himself. Cool.
+				return (verbs[0], [])
 			else:
 				#there are numerous helpers, just use the last as the focus
 				return (verbs[len(verbs) - 1], verbs[:len(verbs) - 1])

@@ -616,11 +616,15 @@ class canoo(internetInterface):
 		if (len(present) == 0):
 			#and the column moves one to the right (make room for "...dass")
 			present = self.__pyQueryGetTable(tables, u"Präsens  Nebensatz") #there are two spaces in these table headers....wtf?
+			
+			#don't grab the "ich" for first ("...dass" is in the ich tr)
+			first = self.getStem(present.eq(3).find("td").eq(2))
+			third = self.getStem(present.eq(5).find("td").eq(1))
+			
 			separable = True
-		
-		#go for the third person
-		first = self.getStem(present.eq(3).find("td").eq(1))
-		third = self.getStem(present.eq(5).find("td").eq(1))
+		else:
+			first = self.getStem(present.eq(3).find("td").eq(1))
+			third = self.getStem(present.eq(5).find("td").eq(1))
 		
 		#find the preterite
 		if (separable):

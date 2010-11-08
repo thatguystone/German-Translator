@@ -44,7 +44,7 @@ function search(query) {
 	
 	running = true;
 	
-	var highlighted = query.split(" ");
+	var highlighted = query.replace("-", "").split(" ");
 	
 	$.ajax({
 		url: "/api/",

@@ -24,7 +24,7 @@ class word(object):
 		self.numWords = numWords
 	
 	def exists(self):
-		return self.translations.exists() or self.verb.exists()
+		return self.translations.exists() and self.verb.exists()
 	
 	def get(self, pos = "all"):
 		#if we have a verb, then add the root translations to the mix
@@ -62,6 +62,9 @@ class word(object):
 					return True
 			
 		return False
+	
+	def isParticiple(self):
+		return self.verb.isParticiple()
 	
 	def isHelper(self):
 		return self.verb.isHelper()
@@ -275,7 +278,7 @@ class cache(internetInterface):
 	#words that need a space after them in order to be removed
 	cleanupWords = [
 		#words that just need spaces to be removed
-		"der", "die", "das", "to", "zu", "zur", "zum", "sich",
+		"der", "die", "das", "to", "zu", "zur", "zum", "sich", "oneself",
 		
 		#words that should always be removed
 		"sth.", "etw.", "jmdm.", "jmdn.", "jmds.", "so.", "adj.",
@@ -320,18 +323,17 @@ class cache(internetInterface):
 			word = word[:loc]
 		
 		#remove extra words from the definition
-		words = word.split(" ")
+		words = word.replace("/", " ").split(" ")
+		
+		#build up a new word that fits our parameters
+		#easier to do this than remove words from the list
+		newWord = []
+		
 		for w in words:
-			if (len(w.strip()) == 0):
-				words.remove(w)
-			else:
-				#and the words that aren't needed and can't conflict with other words
-				for replace in self.cleanupWords:
-					if (w == replace):
-						words.remove(replace)
-						break
-
-		word = " ".join(words)
+			if (len(w.strip()) > 0 and not w in self.cleanupWords):
+				newWord.append(w)
+			
+		word = " ".join(newWord)
 		
 		return word.strip("/").strip("-").strip()
 	
@@ -352,6 +354,14 @@ class canoo(internetInterface):
 	helperHaben = "haben"
 	helperSein = "sein"
 	helperWerden = "werden"
+	
+	def __init__(self, word):
+		super(canoo, self).__init__(word)
+		
+		#fake out canoo -- if we have a combined verb ("kennen lernen", etc), then just use
+		#the last word of the verb as the verb
+		if (word.find(" ") > 0):
+			self.word = word[word.rfind(" ") + 1:]
 	
 	def exists(self):
 		self.__search()
@@ -386,6 +396,36 @@ class canoo(internetInterface):
 					return True
 		
 		return False
+	
+	def getParticipleStem(self):
+		#remove all the adjective endings from the word
+		w = self.word
+		for end in ("es", "en", "er", "em", "e"):
+			if (w[len(w) - len(end):] == end): #remove the end, but only once (thus, rstrip doesn't work)
+				w = w[:len(w) - len(end)]
+				break			
+		
+		#remove the final "d" that plauges our life
+		if (w[len(w) - 1:] == "d"):
+			w = w[:len(w) -1]
+		
+		forms = word(w).verb.get(True)
+		if (len(forms) == 0):
+			return (None, ())
+		
+		form = forms[0]
+		stem = self.getStem(w)
+		
+		return (stem, form)
+	
+	def isParticiple(self):
+		stem, form = self.getParticipleStem()
+		
+		if (stem == None):
+			return False
+		
+		#in order to be a participle, the stem has to come in as "stem" or "perfect"
+		return (form["stem"] == stem or form["perfect"] == stem)
 	
 	def get(self, unknownHelper = False, returnAll = False):
 		"""
@@ -432,6 +472,8 @@ class canoo(internetInterface):
 			WHERE
 				`full`=%s
 				OR
+				`full`=%s
+				OR
 				`stem`=%s
 				OR
 				`preterite`=%s
@@ -444,7 +486,7 @@ class canoo(internetInterface):
 				OR
 				`subj2`=%s
 			;
-		""", (self.word, stem, stem, stem, stem, stem, stem))
+		""", (self.word, stem, stem, stem, stem, stem, stem, stem))
 		
 		if (type(rows) != tuple):
 			#it's entirely possible that we're removing verb endings too aggressively, so make a pass

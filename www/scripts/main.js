@@ -1,9 +1,15 @@
-var $translations, $query, $table;
+var $translations, $query, $table, $searchPhrase;
+
+var colors = [
+	"F7977A", "FFF79A", "C4DF9B", "6ECFF6", "8882BE", "BC8DBF", "F6989D",
+	"F9AD81", "82CA9D", "8493CA", "D7D7D7"
+];
 
 $(function() {
 	$translations = $(".translations");
 	$query = $("#query");
 	$table = $("#translations");
+	$searchPhrase = $("#searchPhrase");
 
 	$("#translationInputs").submit(function() {
 		search($query.val());
@@ -38,6 +44,8 @@ function search(query) {
 	
 	running = true;
 	
+	var highlighted = query.split(" ");
+	
 	$.ajax({
 		url: "/api/",
 		type: "get",
@@ -51,9 +59,24 @@ function search(query) {
 			if (data.length == 0) {
 				$table.append('<tr><td colspan="2">No translations found.</td></tr>');
 			} else {
+				var currentColor = -1;
+				var currentWord = -1;
+				var style = "";
+				
 				$.each(data, function(i, v) {
-					$table.append("<tr><td>" + v.en + "</td><td>" + v.de + "</td></tr>");
+					if (currentWord == -1 || v.deWordLocation != currentWord) {
+						currentWord = v.deWordLocation;
+						currentColor = (currentColor + 1) % colors.length;
+						
+						style = "style=\"background: #" + colors[currentColor] + ";\"";
+						
+						highlighted[currentWord] = "<span " + style + ">" + highlighted[currentWord] + "</span>";
+					}
+					
+					$table.append("<tr " + style + "><td>" + v.en + "</td><td>" + v.de + "</td></tr>");
 				});
+				
+				$searchPhrase.html(highlighted.join(" "));
 			}
 			
 			$translations.removeClass("loading");

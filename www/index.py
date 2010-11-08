@@ -38,8 +38,7 @@ class RequestHandler(object):
 		if (path > 0 and self.path[0] == "api"):
 			ret = []
 			if ("input" in self.qs):
-				for t in translator.translate(self.qs["input"]):
-					ret.append({"en": t["en"], "de": t["de"]})
+				ret = translator.translate(self.qs["input"])
 			
 			if (self.jsonp):
 				self.req.write(self.qs["callback"] + "(");

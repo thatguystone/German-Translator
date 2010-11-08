@@ -15,24 +15,10 @@ def translate(query):
 		w = word.word(query)
 		return w.get()
 	
-class figurer(object):
+class sentenceFigurer(object):
 	def __init__(self, query):
 		self.query = query
-
-class wordFigurer(figurer):
-	@classmethod
-	def canTranslate(cls, query):
-		"""A basic checker to see if it's even worthwhile running this on the query"""
-		
-		return len(query.split(" ")) == 0
 	
-	def translate(self):
-		#step 1: see if we have the word defined
-		
-		#step 2: no word was defined, attempt to break it down
-		pass
-		
-class sentenceFigurer(figurer):
 	@classmethod
 	def canTranslate(cls, query):
 		"""A basic checker to see if it's even worthwhile running this on the query"""
@@ -48,6 +34,45 @@ class sentenceFigurer(figurer):
 		numWords = len(rawWords)
 		words = [word.word(w, i, numWords) for w, i in zip(rawWords, range(0, numWords))]
 		
+		#do the verb
+		(meanings, usedVerbs) = self.__goForTheVerbs(words[:]) #don't let him mutilate my word list!
+		
+		#check for the participles, and apend them to our translations
+		[meanings.append(p) for p in self.__goForParticiples(words, usedVerbs)]
+		
+		return meanings
+	
+	"""
+	************************************************************************************************
+	*** Functions that work on verbs as adjectives (participles)
+	"""
+	
+	def __goForParticiples(self, words, usedVerbs):
+		#our list of participles and their meanings
+		ret = []
+		
+		#let's just run through the sentence, again, and see what we find
+		#be sure we only use verbs we found that haven't been used as verbs yet
+		for w in [w for w in words if w not in usedVerbs]:
+			if w.isParticiple():
+				stem, form = w.verb.getParticipleStem()
+				
+				if (stem == form["perfect"]):
+					tense = "past participle"
+				else:
+					tense = "present participle"
+				
+				self.meaning(ret, tense, word.word(form["full"]).get("verb"), form["full"], w)
+		
+		return ret
+	
+	"""
+	************************************************************************************************
+	*** Functions that work on figuring out verb tenses
+	"""
+	
+	def __goForTheVerbs(self, words):
+		"""Picks the verbs out of the sentence and does stuff with them."""
 		#let's do a quick check to see if we have a separable prefix at the end of the sentence
 		prefix = None
 		if (words[len(words) - 1].isSeparablePrefix()):
@@ -58,7 +83,7 @@ class sentenceFigurer(figurer):
 		focus, words = self.__findFocus(words, prefix)
 		
 		if (focus == None):
-			return ()
+			return []
 		
 		#we can't do much for translating nouns, so just return their translations (and if it's compound,
 		#it will be resolved via the lookup)
@@ -66,6 +91,39 @@ class sentenceFigurer(figurer):
 			return focus.get()
 		else: #it's a verb
 			return self.__figureVerb(focus, words)
+	
+	def __figureVerb(self, verb, words):
+		"""Attempts to figure out the tense (and the translation) for the given verb"""
+		
+		#first, let's scan the clause for other verbs to give us an idea of what we're looking at
+		helpers = [v for v in words if v.isVerb()]
+		
+		if (len(helpers) == 0):
+			meanings = self.__verbWithoutHelper(verb, words)
+			usedVerbs = [verb]
+		elif (len(helpers) == 1):
+			meanings = self.__verbWithSingleHelper(helpers[0], verb)
+			
+			#if we found meanings (ie. we had "ich habe geglaubt", not "ich bin geglaubt")
+			if (len(meanings) > 0):
+				usedVerbs = [helpers[0], verb]
+			else:
+				#there were no meanings, so attempt it as though the verb is a predicate adjective
+				meanings = self.__verbWithoutHelper(helpers[0], words)
+				#if we still found nothing
+				if (len(meanings) == 0):
+					usedVerbs = []
+				else:
+					usedVerbs = [helpers[0]]
+					
+		else:
+			meanings = []
+			usedVerbs = []
+			#not implemented yet
+			#meanings = self.__multipleVerbs(helpers, verb)
+			pass
+		
+		return (meanings, usedVerbs)
 	
 	def __findFocus(self, words, prefix):
 		"""
@@ -78,9 +136,9 @@ class sentenceFigurer(figurer):
 		
 		#special cases -- for none or 1 found
 		if (len(words) == 0):
-			return (None, ())
+			return (None, [])
 		if (len(words) == 1):
-			return (word.word(words[0]), ())
+			return (word.word(words[0]), [])
 			
 		#first, let's attempt to find a verb that's not a helper
 		verbs = [w for w in words if w.isVerb() and not w.isHelper()]
@@ -102,6 +160,12 @@ class sentenceFigurer(figurer):
 				#if we found some verbs, let's pick out the main one in the sentence
 				focus, rmWords = self.__combineVerbs(verbs)
 				
+				#if we didn't get anything from combining
+				if (focus == None):
+					#then our focus is the last word
+					rmWords = verbs
+					focus = rmWords[len(verbs) - 1]
+				
 				#if we have something, then go ahead and clear it from our search entries
 				if (len(rmWords) > 0):
 					for w in rmWords:
@@ -113,7 +177,7 @@ class sentenceFigurer(figurer):
 			
 			#it's possible we don't have any verbs...which is an ERROR
 			if (len(verbs) == 0):
-				return (None, ())
+				return (None, [])
 			elif (len(verbs) == 1):
 				#if our helper has a prefix (ie. `anhaben`)
 				if (prefix != None):
@@ -122,12 +186,12 @@ class sentenceFigurer(figurer):
 					
 					#make sure our separable verb is actually a verb
 					if (sepVerb.isVerb()):
-						return (sepVerb, ())
+						return (sepVerb, [])
 						
-					return (verb, ())
+					return (verb, [])
 				else:
 					#no prefix on the helper, he's just himself. Cool.
-					return (verbs[0], ())
+					return (verbs[0], [])
 			else:
 				#there are numerous helpers, just use the last as the focus
 				return (verbs[len(verbs) - 1], verbs[:len(verbs) - 1])
@@ -145,8 +209,11 @@ class sentenceFigurer(figurer):
 				#if we're comparing a word to itself...well, that won't work
 				if (i == j):
 					continue
-					
-				tmpWord = word.word(i.word + " " + j.word)
+				
+				if (not (i.exists() and j.exists())):
+					continue
+				
+				tmpWord = word.word(i.verb.get(True)[0]["full"] + " " + j.verb.get(True)[0]["full"])
 				#if we didn't find a word (because it just doesn't exist)
 				if (not tmpWord.exists()):
 					continue
@@ -155,19 +222,6 @@ class sentenceFigurer(figurer):
 				return (tmpWord, (i, j))
 		
 		return (None, [])
-	
-	def __figureVerb(self, verb, words):
-		"""Attempts to figure out the tense (and the translation) for the given verb"""
-		
-		#first, let's scan the clause for other verbs to give us an idea of what we're looking at
-		helpers = [v for v in words if v.isVerb()]
-		
-		if (len(helpers) == 0):
-			return self.__verbWithoutHelper(verb, words)
-		elif (len(helpers) == 1):
-			return self.__verbWithSingleHelper(helpers[0], verb)
-		else:
-			return self.__multipleVerbs(helpers, verb)
 	
 	def __verbWithSingleHelper(self, helper, verb):
 		ret = []
@@ -179,27 +233,32 @@ class sentenceFigurer(figurer):
 		#if we're going for simple tenses
 		if (helper["stem"] == "hab" or helper["stem"] == "sein"):
 			#it's possible that we have numerous verbs that take the same past-tense form
-			verbForms = []
+			verbs = []
 			stem = verb.verb.getStem()
 			
-			#is the verb in the right form for having a helper?
-			#check here to make sure that the entered verb is in the right past-tense form
-			for v in verb.verb.get(helper["full"]):
-				if (v["perfect"] == stem):
-					verbForms.append(v)
+			#if we have a verb like "kennen lernen" and we have the right helper verb
+			if (verb.verb.word != verb.word and helper["full"] == verb.verb.get(True)[0]["hilfsverb"]):
+				verbs.append((verb, verb.verb.get(True)[0]))
+			else:
+				#is the verb in the right form for having a helper?
+				#check here to make sure that the entered verb is in the right past-tense form
+				for v in verb.verb.get(helper["full"]):
+					#make sure we have the right helper, too
+					if (v["perfect"] == stem and v["hilfsverb"] == helper["full"]):
+						verbs.append((word.word(v["full"], verb.loc, verb.numWords), v))
 			
 			#two loops...otherwise things get far too indented and painful
-			for verbForm in verbForms:
+			for v, verbForm in verbs:
 				#get the translation 
-				trans = word.word(verbForm["full"]).get("verb")
+				trans = v.get("verb")
 				
 				#process the translation into its proper output form
 				if (helperConj in (helper["third"], helper["first"], helper["stem"])):
-					self.meaning(ret, "(past perfect)", trans, verbForm["full"])
+					self.meaning(ret, "past perfect", trans, v.word, v)
 				elif (helperConj == helper["subj2"]):
-					self.meaning(ret, "(Konj.2 in past)", trans, verbForm["full"])
+					self.meaning(ret, "Konj.2 in past", trans, v.word, v)
 				elif (helperConj == helper["preterite"]):
-					self.meaning(ret, "(Plusquamperfekt)", trans, verbForm["full"])
+					self.meaning(ret, "Plusquamperfekt", trans, v.word, v)
 			
 		#something going on with werden -> conditional present, passive voice
 		elif (helper["stem"] == "werd"):
@@ -226,22 +285,22 @@ class sentenceFigurer(figurer):
 					if (enteredVerbStem == v["stem"]):
 						#if: würde
 						if (helperConj == helper["subj2"]):
-							self.meaning(ret, "(fut./pres. conditional)", trans, v["full"])
+							self.meaning(ret, "fut./pres. conditional", trans, v["full"], verb)
 						
 						#if: wird
 						elif (helperConj in (helper["third"], helper["first"], helper["stem"])):
-							self.meaning(ret, "(future)", trans, v["full"])
+							self.meaning(ret, "future", trans, v["full"], verb)
 					
 					#the stem has been conjugated to past tense: gesehen
 					elif (enteredVerbStem == v["perfect"]):
 						
 						#if: wurde
 						if (helperConj == helper["preterite"]):
-							self.meaning(ret, "(past passive)", trans, v["full"])
+							self.meaning(ret, "past passive", trans, v["full"], verb)
 						
 						#if: wird
 						elif (helperConj in (helper["third"], helper["first"], helper["stem"])):
-							self.meaning(ret, "(present passive)", trans, v["full"])
+							self.meaning(ret, "present passive", trans, v["full"], verb)
 		
 		return ret
 		
@@ -256,22 +315,33 @@ class sentenceFigurer(figurer):
 			trans = word.word(form["full"]).get("verb")
 			
 			#get the full form of the german verb that will be displayed
-			verb = form["full"]
+			verbForm = form["full"]
 			
 			#let's take a look at our forms and see what we can find
 			if (form["preterite"] == stem):
-				self.meaning(ret, "(simple past)", trans, verb)
+				self.meaning(ret, "simple past", trans, verbForm, verb)
 			elif (stem in (form["third"], form["first"], form["stem"])):
 				#this might seem a bit weird -- we need to compare our stem to the stem from the site to see if it's present tense
 				#we also use third because that one might conjugate differently, but it's still present tense
-				self.meaning(ret, "(present)", trans, verb)
+				self.meaning(ret, "present", trans, verbForm, verb)
 			elif (form["subj2"] == stem):
-				self.meaning(ret, "(conditional)", trans, verb)
+				self.meaning(ret, "conditional", trans, verbForm, verb)
 			else:
 				pass #not sure what we're looking at, but it's not correct
 		
 		return ret
 	
-	def meaning(self, retList, tense, en, de):
+	def meaning(self, retList, tense, en, dePrintable, deVerb):
+		"""
+		Puts the translations into the output dictionary list.
+		dePrintable -- the german word that should be displayed in the translation table.
+		deVerb -- the word.word for the translation
+		"""
+		
 		for t in en:
-			retList.append(dict({"en": tense + " " + t["en"], "de": de}))
+			retList.append(dict({
+				"en": "(" + tense + ") " + t["en"],
+				"de": dePrintable,
+				"deOrig": deVerb.word,
+				"deWordLocation": deVerb.loc
+			}))

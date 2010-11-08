@@ -472,8 +472,6 @@ class canoo(internetInterface):
 			WHERE
 				`full`=%s
 				OR
-				`full`=%s
-				OR
 				`stem`=%s
 				OR
 				`preterite`=%s
@@ -485,6 +483,8 @@ class canoo(internetInterface):
 				`third`=%s
 				OR
 				`subj2`=%s
+				OR
+				`participle`=%s
 			;
 		""", (self.word, stem, stem, stem, stem, stem, stem, stem))
 		
@@ -508,8 +508,10 @@ class canoo(internetInterface):
 					`third`=%s
 					OR
 					`subj2`=%s
+					OR
+					`participle`=%s
 				;
-			""", (self.word, self.word, self.word, self.word, self.word, self.word, self.word))
+			""", (self.word, self.word, self.word, self.word, self.word, self.word, self.word, self.word))
 		
 		#but if we still haven't found anything...we must give up :(
 		if (type(rows) != tuple):
@@ -640,6 +642,10 @@ class canoo(internetInterface):
 		q = self.__pyQueryGetTable(tables, "Perfekt")
 		perfect = self.getStem(q.eq(3).find("td").eq(2))
 		
+		#and that participle
+		q = self.__pyQueryGetTable(tables, u"Partizip Präsens")
+		participle = self.getStem(q.eq(1).find("td").eq(0))
+		
 		#get the full form of the verb
 		full = page.find("h1.Headline i").text()
 		
@@ -657,7 +663,8 @@ class canoo(internetInterface):
 			perfect = perfect,
 			first = first,
 			third = third,
-			subj2 = subj2
+			subj2 = subj2,
+			participle = participle
 		)
 	
 	def __getCanooPage(self, url):
@@ -703,7 +710,8 @@ class canoo(internetInterface):
 						`perfect`=%s,
 						`first`=%s,
 						`third`=%s,
-						`subj2`=%s
+						`subj2`=%s,
+						`participle`=%s
 					;
 				""", (
 					inflect["full"],
@@ -713,6 +721,7 @@ class canoo(internetInterface):
 					inflect["perfect"],
 					inflect["first"],
 					inflect["third"],
-					inflect["subj2"]
+					inflect["subj2"],
+					inflect["participle"]
 					)
 				)

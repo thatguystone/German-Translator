@@ -37,7 +37,7 @@ class sentenceFigurer(object):
 		self.__doPrefix(words)
 		
 		#do the verbs
-		(meanings, usedVerbs) = self.__goForTheVerbs(words[:]) #don't let him mutilate my word list!
+		meanings, usedVerbs = self.__goForTheVerbs(words[:]) #don't let him mutilate my word list!
 		
 		#check for the participles, and append them to our translations
 		[meanings.append(p) for p in self.__goForParticiples(words, usedVerbs)]
@@ -92,7 +92,7 @@ class sentenceFigurer(object):
 		focus, words = self.__findFocus(words)
 		
 		if (focus == None):
-			return []
+			return ([], [])
 		
 		#we can't do much for translating nouns, so just return their translations (and if it's compound,
 		#it will be resolved via the lookup)

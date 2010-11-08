@@ -25,7 +25,7 @@ body {
 		}
 	
 	.content .searchPhrase span {
-		background: url(/images/translations.bg.png) repeat-x;
+		background: url(/images/translations.bg.png) repeat-x center bottom;
 	}
 	
 	.content .translations {

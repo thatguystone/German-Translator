@@ -24,6 +24,10 @@ body {
 			width: 23%;
 		}
 	
+	.content .searchPhrase span {
+		background: url(/images/translations.bg.png) repeat-x;
+	}
+	
 	.content .translations {
 	}
 	.content .translations.loading {
@@ -44,6 +48,7 @@ body {
 				padding: 5px 50px;
 			}
 			.content .translations table td {
+				background: url(/images/translations.bg.png) repeat-x;
 				border-bottom: 1px solid #000;
 				padding: 3px 10px;
 			}

@@ -1,8 +1,7 @@
 var $translations, $query, $table, $searchPhrase;
 
 var colors = [
-	"F7977A", "FFF79A", "C4DF9B", "6ECFF6", "8882BE", "BC8DBF", "F6989D",
-	"F9AD81", "82CA9D", "8493CA", "D7D7D7"
+	"FFCBAD", "FFF9B6", "D8E9BF", "C5D6CC", "C5DCF6", "D7BBD9", "B9FCC1" 
 ];
 
 $(function() {
@@ -63,12 +62,17 @@ function search(query) {
 				var currentWord = -1;
 				var style = "";
 				
+				//make the translations print out in sentence order
+				data.sort(dataSorter);
+				//randomize the highlight colors
+				colors.shuffle();
+				
 				$.each(data, function(i, v) {
 					if (currentWord == -1 || v.deWordLocation != currentWord) {
 						currentWord = v.deWordLocation;
 						currentColor = (currentColor + 1) % colors.length;
 						
-						style = "style=\"background: #" + colors[currentColor] + ";\"";
+						style = "style=\"background-color: #" + colors[currentColor] + ";\"";
 						
 						highlighted[currentWord] = "<span " + style + ">" + highlighted[currentWord] + "</span>";
 					}
@@ -87,6 +91,26 @@ function search(query) {
 		}
 	});
 }
+
+function dataSorter(a, b) {
+	if (a.deWordLocation < b.deWordLocation)
+		return -1;
+	if (a.deWordLocation == b.deWordLocation)
+		return 0;
+	
+	return 1;
+}
+
+Array.prototype.shuffle = function() {
+ 	var len = this.length;
+	var i = len;
+	 while (i--) {
+	 	var p = parseInt(Math.random()*len);
+		var t = this[i];
+  	this[i] = this[p];
+  	this[p] = t;
+ 	}
+};
 
 function triedSearch() {
 	tries++;

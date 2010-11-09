@@ -9,6 +9,8 @@ from mysql import mysql
 import translator
 import utf8
 
+import traceback
+
 class word(object):
 	"""Encapsulates a word to get all the information about it"""
 	
@@ -123,7 +125,7 @@ class cache(internetInterface):
 	def addTranslations(self, cache):
 		"""Given another cache object, it adds its translations to this one"""
 		
-		self.__search()
+		self.searchRan = True
 		self.__storeWords(cache.get())
 	
 	def __search(self):
@@ -358,10 +360,13 @@ class canoo(internetInterface):
 	def __init__(self, word):
 		super(canoo, self).__init__(word)
 		
+		self.prefix = ""
+		
 		#fake out canoo -- if we have a combined verb ("kennen lernen", etc), then just use
 		#the last word of the verb as the verb
 		if (word.find(" ") > 0):
 			self.word = word[word.rfind(" ") + 1:]
+			self.prefix = word[:word.rfind(" ") + 1]
 	
 	def exists(self):
 		self.__search()
@@ -532,6 +537,9 @@ class canoo(internetInterface):
 				
 				if (not r["hilfsverb"] in self.words.keys()):
 					self.words[r["hilfsverb"]] = []
+				
+				#set full back to the original verb with the prefix
+				tmp["full"] = self.prefix + tmp["full"]
 				
 				#save the word to our helper verb table
 				self.words[r["hilfsverb"]].append(tmp)

@@ -45,6 +45,8 @@ class sentenceFigurer(object):
 		return meanings
 	
 	def __doPrefix(self, words):
+		verbs = [w for w in words if w.isVerb()]
+		
 		#let's do a quick check to see if we have a separable prefix at the end of the sentence
 		prefix = None
 		if (words[len(words) - 1].isSeparablePrefix()):
@@ -52,10 +54,24 @@ class sentenceFigurer(object):
 			words.remove(prefix)
 			
 			#and attach the prefix to the first verb in the sentence
-			for w, i in zip(words, range(0, len(words))):
-				if (w.isVerb()):
-					words[i] = word.word(prefix.word + w.word, w.loc, w.numWords)
+			for v in verbs:
+				combinedWord = word.word(prefix.word + v.word, v.loc, v.numWords)
+				if (combinedWord.isVerb()):
+					words[words.index(v)] = combinedWord
 					break
+		
+		#now attempt to find a verb combination
+		combinedWords, rmWords = self.__combineVerbs(verbs)
+		if (combinedWords != None):
+			first = len(words) + 1
+			#remove the old words
+			for w in rmWords:
+				if (w.loc > -1 and w.loc < first):
+					first = w.loc
+				words.remove(w)
+			
+			#and put the combined word into the list
+			words.insert(first, combinedWords)
 	
 	"""
 	************************************************************************************************
@@ -96,7 +112,9 @@ class sentenceFigurer(object):
 		
 		#we can't do much for translating nouns, so just return their translations (and if it's compound,
 		#it will be resolved via the lookup)
-		if ((focus.isNoun() or focus.isAdjAdv()) and not focus.isVerb()):
+		#note: call focus.isVerb() first so that the leo results for the _full_ verb form are cached
+		#	so that we only hit leo once per verb (ie. so that anhabe and angehabt don't hit leo twice)
+		if (not focus.isVerb() and (focus.isNoun() or focus.isAdjAdv())):
 			return focus.get()
 		else: #it's a verb
 			return self.__figureVerb(focus, words)
@@ -154,20 +172,10 @@ class sentenceFigurer(object):
 		
 		#if there are other verbs in the sentence that are not helpers
 		if (len(verbs) > 0):
-			#if we found some verbs, let's pick out the main one in the sentence
-			focus, rmWords = self.__combineVerbs(verbs)
+			#the last verb is always the focus
+			focus = verbs[len(verbs) - 1]
+			words.remove(w)
 			
-			#if we didn't get anything from combining
-			if (focus == None):
-				#then our focus is the last word
-				rmWords = verbs
-				focus = rmWords[len(verbs) - 1]
-			
-			#if we have something, then go ahead and clear it from our search entries
-			if (len(rmWords) > 0):
-				for w in rmWords:
-					words.remove(w)
-		
 			return (focus, words)
 		else: #we only have helper verbs
 			verbs = [w for w in words if w.isVerb()]
@@ -183,11 +191,6 @@ class sentenceFigurer(object):
 				return (verbs[len(verbs) - 1], verbs[:len(verbs) - 1])
 			
 	def __combineVerbs(self, verbs):
-		if (len(verbs) == 1):
-			#if we only have one verb, this is a special case...
-			focus = verbs[0] #get our focus verb
-			return (focus, [focus])
-		
 		#attempt to combine the verbs in some meaningful way to see if we find anything
 		#ex: kennen lernen, scheiden lassen, schneiden lassen
 		for i in verbs:
@@ -196,12 +199,13 @@ class sentenceFigurer(object):
 				if (i == j):
 					continue
 				
-				if (not (i.exists() and j.exists())):
+				if (not (i.isVerb() and j.isVerb())):
 					continue
-				
+
 				tmpWord = word.word(i.verb.get(True)[0]["full"] + " " + j.verb.get(True)[0]["full"])
+				
 				#if we didn't find a word (because it just doesn't exist)
-				if (not tmpWord.exists()):
+				if (len(tmpWord.get()) == 0):
 					continue
 				
 				#oh hey, if we get here, we're definitely looking at a verb combination! yay!

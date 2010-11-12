@@ -386,6 +386,9 @@ class canoo(internetInterface):
 		if (ret.find("\n") >= 0):
 			ret = ret.split("\n")[0]
 		
+		#clear away any extra spaces that might be hanging around
+		ret = ret.strip()
+		
 		#start by removing any endings we could have when conjugated
 		for end in ("est", "et", "en", "e", "st", "t"): #order matters in this list
 			if (ret[len(ret) - len(end):] == end): #remove the end, but only once (thus, rstrip doesn't work)
@@ -394,9 +397,15 @@ class canoo(internetInterface):
 		
 		return ret
 	
-	def isHelper(self):
+	def isHelper(self, helpers = None):
+		if (helpers == None):
+			helpers = (canoo.helperHaben, canoo.helperSein, canoo.helperWerden)
+		
+		if (type(helpers) != tuple):
+			helpers = (helpers, )
+		
 		if (self.exists()):
-			for helper in (canoo.helperHaben, canoo.helperSein, canoo.helperWerden):
+			for helper in helpers:
 				if (self.get(unknownHelper = True)[0]["full"] == helper):
 					return True
 		
@@ -410,18 +419,31 @@ class canoo(internetInterface):
 				w = w[:len(w) - len(end)]
 				break			
 		
-		#remove the final "d" that plauges our life
-		if (w[len(w) - 1:] == "d"):
-			w = w[:len(w) -1]
-		
 		forms = word(w).verb.get(True)
 		if (len(forms) == 0):
 			return (None, ())
 		
 		form = forms[0]
-		stem = self.getStem(w)
 		
-		return (stem, form)
+		return (w, form)
+	
+	def isPresentParticiple(self):
+		stem, form = self.getParticipleStem()
+		
+		if (stem == None):
+			return False
+		
+		#in order to be a participle, the stem has to come in as "participle" or "perfect"
+		return (form["participle"] == stem)
+	
+	def isPastParticiple(self):
+		stem, form = self.getParticipleStem()
+		
+		if (stem == None):
+			return False
+		
+		#in order to be a participle, the stem has to come in as "participle" or "perfect"
+		return (form["perfect"] == self.getStem(stem))
 	
 	def isParticiple(self):
 		stem, form = self.getParticipleStem()
@@ -429,8 +451,18 @@ class canoo(internetInterface):
 		if (stem == None):
 			return False
 		
-		#in order to be a participle, the stem has to come in as "stem" or "perfect"
-		return (form["stem"] == stem or form["perfect"] == stem)
+		#in order to be a participle, the stem has to come in as "participle" or "perfect"
+		return (form["participle"] == stem or form["perfect"] == self.getStem(stem))
+	
+	def isModal(self):
+		forms = self.get(True)
+		
+		if (len(forms) == 0):
+			False
+		
+		form = forms[0]
+		
+		return (form["full"] in (u"mögen", "wollen", "sollen", "werden", u"können", u"müssen"))
 	
 	def get(self, unknownHelper = False, returnAll = False):
 		"""

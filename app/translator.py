@@ -14,7 +14,10 @@ def translate(query):
 	else:
 		w = word.word(query)
 		return w.get()
-	
+
+def printWords(words):
+	print [w.word for w in words]
+
 class sentenceFigurer(object):
 	def __init__(self, query):
 		self.query = query
@@ -27,311 +30,320 @@ class sentenceFigurer(object):
 	
 	def translate(self):
 		"""Assumes we can translate it, then runs a sentence guesser on it"""
+		return clauseFigurer(self.query).translate()
+
+class clauseFigurer(object):
+	def __init__(self, query):
+		self.query = query
+	
+	def translate(self):
+		"""Given a complete clause, finds relations amongst verbs and determines their tenses."""
 		
-		#start off by getting the different words in the sentence
-		#combine dashed-words into one word for easier access
+		#step 1: get all the words in the sentence
 		rawWords = self.query.replace("-", "").split(" ")
 		numWords = len(rawWords)
+		#and assign those words their locations
 		words = [word.word(w, i, numWords) for w, i in zip(rawWords, range(0, numWords))]
 		
-		self.__doPrefix(words)
+		#and run for all the possible verbs (participles could be included in this list)
+		possibleVerbs = [v for v in words if v.isVerb()]
 		
-		#do the verbs
-		meanings, usedVerbs = self.__goForTheVerbs(words[:]) #don't let him mutilate my word list!
+		#step 2: since we are in a clause, we have isolation from all other verbs, so let's
+		#start building out our verb tree
+		#
+		#do we have a separable prefix that needs re-attaching?
+		lastWord = words[len(words) - 1]
+		if (lastWord.isSeparablePrefix()):
+			#attempt to see if when we add the prefix to the verb, it is still a verb
+			prefixed = word.word(lastWord.word + possibleVerbs[0].word, possibleVerbs[0].loc, possibleVerbs[0].numWords)
+			if (prefixed.isVerb()):
+				possibleVerbs[0] = prefixed #it's a separable verb, so replace it
 		
-		#check for the participles, and append them to our translations
-		[meanings.append(p) for p in self.__goForParticiples(words, usedVerbs)]
-		
-		return meanings
-	
-	def __doPrefix(self, words):
-		verbs = [w for w in words if w.isVerb()]
-		
-		#let's do a quick check to see if we have a separable prefix at the end of the sentence
-		prefix = None
-		if (words[len(words) - 1].isSeparablePrefix()):
-			prefix = words[len(words) - 1]
-			words.remove(prefix)
-			
-			#and attach the prefix to the first verb in the sentence
-			for v in verbs:
-				combinedWord = word.word(prefix.word + v.word, v.loc, v.numWords)
-				if (combinedWord.isVerb()):
-					words[words.index(v)] = combinedWord
-					break
-		
-		#now attempt to find a verb combination
-		combinedWords, rmWords = self.__combineVerbs(verbs)
-		if (combinedWords != None):
-			first = len(words) + 1
-			#remove the old words
-			for w in rmWords:
-				if (w.loc > -1 and w.loc < first):
-					first = w.loc
-				words.remove(w)
-			
-			#and put the combined word into the list
-			words.insert(first, combinedWords)
-	
-	"""
-	************************************************************************************************
-	*** Functions that work on verbs as adjectives (participles)
-	"""
-	
-	def __goForParticiples(self, words, usedVerbs):
-		#our list of participles and their meanings
-		ret = []
-		
-		#let's just run through the sentence, again, and see what we find
-		#be sure we only use verbs we found that haven't been used as verbs yet
-		for w in [w for w in words if w not in usedVerbs]:
-			if w.isParticiple():
-				stem, form = w.verb.getParticipleStem()
-				
-				if (stem == form["perfect"]):
-					tense = "past participle"
-				else:
-					tense = "present participle"
-				
-				self.meaning(ret, tense, word.word(form["full"]).get("verb"), form["full"], w)
-		
-		return ret
-	
-	"""
-	************************************************************************************************
-	*** Functions that work on figuring out verb tenses
-	"""
-	
-	def __goForTheVerbs(self, words):
-		"""Picks the verbs out of the sentence and does stuff with them."""
-		#let's see
-		focus, words = self.__findFocus(words)
-		
-		if (focus == None):
-			return ([], [])
-		
-		#we can't do much for translating nouns, so just return their translations (and if it's compound,
-		#it will be resolved via the lookup)
-		#note: call focus.isVerb() first so that the leo results for the _full_ verb form are cached
-		#	so that we only hit leo once per verb (ie. so that anhabe and angehabt don't hit leo twice)
-		if (not focus.isVerb() and (focus.isNoun() or focus.isAdjAdv())):
-			return focus.get()
-		else: #it's a verb
-			return self.__figureVerb(focus, words)
-	
-	def __figureVerb(self, verb, words):
-		"""Attempts to figure out the tense (and the translation) for the given verb"""
-		
-		#first, let's scan the clause for other verbs to give us an idea of what we're looking at
-		helpers = [v for v in words if v.isVerb()]
-		
-		if (len(helpers) == 0):
-			meanings = self.__verbWithoutHelper(verb, words)
-			usedVerbs = [verb]
-		elif (len(helpers) == 1):
-			meanings = self.__verbWithSingleHelper(helpers[0], verb)
-			
-			#if we found meanings (ie. we had "ich habe geglaubt", not "ich bin geglaubt")
-			if (len(meanings) > 0):
-				usedVerbs = [helpers[0], verb]
-			else:
-				#there were no meanings, so attempt it as though the verb is a predicate adjective
-				meanings = self.__verbWithoutHelper(helpers[0], words)
-				#if we still found nothing
-				if (len(meanings) == 0):
-					usedVerbs = []
-				else:
-					usedVerbs = [helpers[0]]
-					
-		else:
-			meanings = []
-			usedVerbs = []
-			#not implemented yet
-			#meanings = self.__multipleVerbs(helpers, verb)
-			pass
-		
-		return (meanings, usedVerbs)
-	
-	def __findFocus(self, words):
-		"""
-		Goes through all the words in the sentence and picks out the verbs (and adds on the prefix
-		(if it exists) to the first verb found).  If no verbs are found (besides helpers), then we
-		assume the helpers are being used as regular verbs, and we return those as a special case.
-		Otherwise, we go through and attempt to find verb combinations (ie. `kennen lernen`), and
-		return what we find, the first major verb found being the focus.
-		"""
-		
-		#special cases -- for none or 1 found
-		if (len(words) == 0):
-			return (None, [])
-		if (len(words) == 1):
-			return (word.word(words[0]), [])
-			
-		#first, let's attempt to find a verb that's not a helper
-		verbs = [w for w in words if w.isVerb() and not w.isHelper()]
-		
-		#if there are other verbs in the sentence that are not helpers
-		if (len(verbs) > 0):
-			#the last verb is always the focus
-			focus = verbs[len(verbs) - 1]
-			words.remove(w)
-			
-			return (focus, words)
-		else: #we only have helper verbs
-			verbs = [w for w in words if w.isVerb()]
-			
-			#it's possible we don't have any verbs...which is an ERROR
-			if (len(verbs) == 0):
-				return (None, [])
-			elif (len(verbs) == 1):
-				#no prefix on the helper, he's just himself. Cool.
-				return (verbs[0], [])
-			else:
-				#there are numerous helpers, just use the last as the focus
-				return (verbs[len(verbs) - 1], verbs[:len(verbs) - 1])
-			
-	def __combineVerbs(self, verbs):
-		#attempt to combine the verbs in some meaningful way to see if we find anything
-		#ex: kennen lernen, scheiden lassen, schneiden lassen
-		for i in verbs:
-			for j in verbs:
-				#if we're comparing a word to itself...well, that won't work
-				if (i == j):
-					continue
-				
-				if (not (i.isVerb() and j.isVerb())):
-					continue
+		#pass it onto the tree constructor to build out our verb tree
+		tree = verbTree(possibleVerbs)
+		tree.build()
+		tree.translate()
+		tree.dump()
 
-				tmpWord = word.word(i.verb.get(True)[0]["full"] + " " + j.verb.get(True)[0]["full"])
-				
-				#if we didn't find a word (because it just doesn't exist)
-				if (len(tmpWord.get()) == 0):
-					continue
-				
-				#oh hey, if we get here, we're definitely looking at a verb combination! yay!
-				return (tmpWord, (i, j))
-		
-		return (None, [])
+class tenses(object):
+	CONDITIONAL = "konj.2 in fut./pres."
+	CONDITIONAL_PAST = "konj.2 in past"
+	FUTURE = "future"
+	PASSIVE_PAST = "past passive"
+	PASSIVE_PRESENT = "present passive"
+	PAST_PERFECT = "past perfect"
+	PLUSQUAM = "plusquamperfekt"
+	PRESENT = "present"
+	PRETERITE = "preterite"
+
+class verbTree(object):
+	def __init__(self, verbs):
+		self.verbs = verbs
+		self.node = None
 	
-	def __verbWithSingleHelper(self, helper, verb):
-		ret = []
+	def build(self):
+		"""
+		Starts the construction of the tree -- it finds the first verb that all verbs in the sentence
+		attach to, then it passes off the remaining verbs (which MUST be at the end of the clause)
+		to the node to figure out
+		"""
 		
-		#it's a helper, so we're safe grabbing its helper
-		helperConj = helper.verb.getStem()
-		helper = helper.verb.get(unknownHelper = True)[0]
+		#we can never start off with a participle -> that's not even a verb!
+		for i, v in zip(range(0, len(self.verbs)), self.verbs):
+			if (v.verb.isParticiple()):
+				continue
+			
+			self.node = verbNode(v, self.verbs[i + 1:])
+			self.node.process()
+			break
+		
+	def translate(self):
+		if (self.node == None):
+			return
+		
+		#and trigger the nodes to start giving their tenses back
+		self.node.translate()
+	
+	def dump(self):
+		self.node.dump()
+		print
+
+class verbNode(object):
+	def __init__(self, verb, remainingVerbs):
+		#the defineable form of the verb
+		self.verb = verb
+		
+		#the remaining verbs that need put into the tree
+		self.remaining = remainingVerbs
+		self.lenRemain = len(remainingVerbs)
+		
+		#another reference to the verb -- if we have a verb like `kennen lernen`, then this will
+		#be set to its infinitive form
+		# * for example: if verb is "kennen gelernt", this will be "gelernt" as that is the conjugateable
+		#   form of the verb
+		self.conjugation = self.verb
+		
+		#we always have to have a child, even if nothing
+		self.child = None
+		
+		#we start of not being combined with anything
+		self.isCombined = False
+		
+		#and the translations for our verb
+		self.meanings = []
+		
+		#the tense of our verb, none by default just for safe-keeping
+		self.tense = None
+	
+	def setTense(self, tense):
+		self.tense = tense
+	
+	def process(self):
+		"""
+		Goes through the remaining verbs, from the back->front (this is how they now take precedence),
+		and attempts to attach them to each other.
+		"""
+		
+		#we're at the bottom of the tree
+		if (self.lenRemain == 0):
+			return
+		
+		#take a look at the next verb to process
+		next = self.remaining[self.lenRemain - 1]
+		
+		self.child = verbNode(next, self.remaining[:self.lenRemain - 1])
+		self.child.process()
+		
+		#let's see if we can somehow combine with our child (for `kennen lernen` verbs)
+		if (self.child != None and not self.child.isCombined):
+			self.combineWithChild()
+		
+	def combineWithChild(self):
+		#first, let's see if it's even legal for us to combine with one of our children
+		if (self.verb.verb.isModal() or self.verb.verb.isHelper()):
+			return
+		
+		#the first verb to compare
+		first = self.child.verb
+		firstFull = first.verb.get(True)[0]["full"]
+		#and the second
+		second = self.verb
+		secondFull = second.verb.get(True)[0]["full"]
+		
+		forms = (
+			(word.word(firstFull + " " + secondFull, first.loc, first.numWords), second),
+			(word.word(secondFull + " " + firstFull, first.loc, first.numWords), first),
+			(word.word(firstFull + secondFull, first.loc, first.numWords), second),
+			(word.word(secondFull + firstFull, first.loc, first.numWords), first)
+		)
+		
+		#go through all possible combinations
+		for f in forms:
+			if (len(f[0].get()) != 0):
+				#store the conjugation and defineable forms
+				self.verb = f[0]
+				self.conjugation = f[1]
+				
+				#we're absorbing our child, remove him
+				self.child = self.child.child
+				
+				#and set our flag that we're not combined with our child
+				self.isCombined = True
+				break
+	
+	def translate(self):
+		"""From the parent, gets the proper tense of this verb"""
+		
+		if (self.verb.isHelper()):
+			self.__translateAsHelper()
+		elif (self.verb.verb.isModal()):
+			self.__translateModal()
+			self.child.translate()
+		else:
+			self.__standAlone()
+	
+	def __translateAsHelper(self):
+		#if we have a child, then we are helping the child change his tense
+		if (self.child != None):
+			self.child.__translateWithParent_helper(self)
+		
+		#otherwise, we're operating as our own verb, yayz!
+		else:
+			self.__standAlone()
+	
+	def __standAlone(self):
+		#looks like we're just a verb by our lonesome in a big, bad sentence :(
+		form = self.conjugation.verb.get(True)[0]
+		stem = self.conjugation.verb.getStem()
+		self.__setNormalTenses(form, stem)
+		self.__meaning(self.verb.get("verb"), form["full"])
+	
+	def __translateModal(self):
+		"""This is only reached if the modal is stand-alone, so just do him by himself"""
+		
+		#just set our tense to the tense of our modal
+		form = self.verb.verb.get(True)[0]
+		stem = self.verb.verb.getStem()
+		self.__setNormalTenses(form, stem)
+	
+	def __translateWithParent_helper(self, parent):
+		"""Do a translation when our parent is a helper"""
+		
+		#if we're a modal and our parent a helper, then we need to rely on his form
+		if (self.verb.verb.isModal()):
+			self.__translateWithHelper_modal(parent)
+			self.child.translate()
+			
+		#in german, you can't have two helpers in a row
+		else:
+			self.__translateWithHelper(parent)
+		
+		print "--" + parent.verb.word
+	
+	def __translateWithHelper_modal(self, parent):
+		form = parent.conjugation.verb.get(True)[0]
+		stem = parent.conjugation.verb.getStem()
+		
+		if (stem == form["subj2"]):
+			self.setTense(tenses.CONDITIONAL_PAST)
+		elif (stem in (form["first"], form["third"], form["stem"])):
+			self.setTense(tenses.PAST_PERFECT)
+	
+	def __translateWithHelper(self, parent):
+		#grab our helper's conjugations and stuff
+		helperConj = parent.verb.verb.getStem()
+		helper = parent.verb.verb.get(unknownHelper = True)[0]
 		
 		#if we're going for simple tenses
 		if (helper["stem"] == "hab" or helper["stem"] == "sein"):
 			#it's possible that we have numerous verbs that take the same past-tense form
 			verbs = []
-			stem = verb.verb.getStem()
+			stem = self.conjugation.verb.getStem()
 			
-			#if we have a verb like "kennen lernen" and we have the right helper verb
-			if (verb.verb.word != verb.word and helper["full"] == verb.verb.get(True)[0]["hilfsverb"]):
-				verbs.append((verb, verb.verb.get(True)[0]))
-			else:
-				#is the verb in the right form for having a helper?
-				#check here to make sure that the entered verb is in the right past-tense form
-				for v in verb.verb.get(helper["full"]):
-					#make sure we have the right helper, too
-					if (v["perfect"] == stem and v["hilfsverb"] == helper["full"]):
-						verbs.append((word.word(v["full"], verb.loc, verb.numWords), v))
-			
+			#is the verb in the right form for having a helper?
+			#check here to make sure that the entered verb is in the right past-tense form
+			for v in self.conjugation.verb.get(helper["full"]):
+				#make sure we have the right helper, too
+				if (v["perfect"] == stem and v["hilfsverb"] == helper["full"]):
+					verbs.append(word.word(v["full"]))
+		
 			#two loops...otherwise things get far too indented and painful
-			for v, verbForm in verbs:
+			for v in verbs:
 				#get the translation 
 				trans = v.get("verb")
 				
 				#process the translation into its proper output form
 				if (helperConj in (helper["third"], helper["first"], helper["stem"])):
-					self.meaning(ret, "past perfect", trans, v.word, v)
+					self.setTense(tenses.PAST_PERFECT)
 				elif (helperConj == helper["subj2"]):
-					self.meaning(ret, "Konj.2 in past", trans, v.word, v)
+					self.setTense(tenses.KON2_IN_PAST)
 				elif (helperConj == helper["preterite"]):
-					self.meaning(ret, "Plusquamperfekt", trans, v.word, v)
+					self.setTense(tenses.PLUSQUAM)
+				
+				#and set the translations with the full form of our word
+				#it can grab from our node the conjugated values, &etc.
+				self.__meaning(trans, v.word)
 			
 		#something going on with werden -> conditional present, passive voice
 		elif (helper["stem"] == "werd"):
+			
+			conjugatedStem = self.conjugation.verb.getStem()
+			
 			#all the possible verbs (ex: gedenken + denken for gedacht)
-			verbs = verb.verb.get(returnAll = True)
-			
-			enteredVerb = verb.getWord()
-			
-			#used for finding the correct conjugation
-			enteredVerbStem = verb.verb.getStem()
-			
-			#####
-			## Is there a better way to do this?
-			#####
-			
-			#for each helper returned
-			for k, h in verbs.iteritems():
-				#for each verb
-				for v in h:
-					#get the translation
-					trans = word.word(v["full"]).get("verb")
-					
-					#if we're looking at an unconjugated form of the verb: sehen
-					if (enteredVerbStem == v["stem"]):
-						#if: würde
-						if (helperConj == helper["subj2"]):
-							self.meaning(ret, "fut./pres. conditional", trans, v["full"], verb)
-						
-						#if: wird
-						elif (helperConj in (helper["third"], helper["first"], helper["stem"])):
-							self.meaning(ret, "future", trans, v["full"], verb)
-					
-					#the stem has been conjugated to past tense: gesehen
-					elif (enteredVerbStem == v["perfect"]):
-						
-						#if: wurde
-						if (helperConj == helper["preterite"]):
-							self.meaning(ret, "past passive", trans, v["full"], verb)
-						
-						#if: wird
-						elif (helperConj in (helper["third"], helper["first"], helper["stem"])):
-							self.meaning(ret, "present passive", trans, v["full"], verb)
-		
-		return ret
-		
-	def __verbWithoutHelper(self, verb, words):
-		#we don't have a helper, so let's see what form our verb is taking
-		stem = verb.verb.getStem()
-		forms = verb.verb.get(unknownHelper = True)
-		ret = []
-		
-		for form in forms:
-			#run to our word translator -- grab all the verbs that match the infinitive
-			trans = word.word(form["full"]).get("verb")
-			
-			#get the full form of the german verb that will be displayed
-			verbForm = form["full"]
-			
-			#let's take a look at our forms and see what we can find
-			if (form["preterite"] == stem):
-				self.meaning(ret, "simple past", trans, verbForm, verb)
-			elif (stem in (form["third"], form["first"], form["stem"])):
-				#this might seem a bit weird -- we need to compare our stem to the stem from the site to see if it's present tense
-				#we also use third because that one might conjugate differently, but it's still present tense
-				self.meaning(ret, "present", trans, verbForm, verb)
-			elif (form["subj2"] == stem):
-				self.meaning(ret, "conditional", trans, verbForm, verb)
-			else:
-				pass #not sure what we're looking at, but it's not correct
-		
-		return ret
+			for v in self.conjugation.verb.get(helper["full"]):
+				trans = word.word(v["full"]).get("verb")
+				
+				#if we're looking at an unconjugated form of the verb: sehen
+				if (conjugatedStem == v["stem"]):
+					if (helperConj == helper["subj2"]):
+						self.setTense(tenses.CONDITIONAL)
+					elif (helperConj in (helper["third"], helper["first"], helper["stem"])):
+						self.setTense(tenses.FUTURE)
+				elif (conjugatedStem == v["perfect"]):
+					if (helperConj == helper["preterite"]):
+						self.setTense(tenses.PASSIVE_PAST)
+					elif (helperConj in (helper["third"], helper["first"], helper["stem"])):
+						self.setTense(tenses.PASSIVE_PRESENT)
+				
+				self.__meaning(trans, v["full"])
 	
-	def meaning(self, retList, tense, en, dePrintable, deVerb):
+	def __setNormalTenses(self, form, stem):
+		"""
+		When there aren't any special cases, and the verb follows the tense forms exactly, this is
+		a quick way to set the tense.
+		"""
+		
+		if (stem == form["subj2"]):
+			self.setTense(tenses.CONDITIONAL_PAST)
+		elif (stem in (form["first"], form["third"], form["stem"])):
+			self.setTense(tenses.PRESENT)
+		elif (stem == form["preterite"]):
+			self.setTense(tenses.PRETERITE)
+	
+	def __meaning(self, translations, fullForm):
 		"""
 		Puts the translations into the output dictionary list.
 		dePrintable -- the german word that should be displayed in the translation table.
 		deVerb -- the word.word for the translation
 		"""
 		
-		for t in en:
-			retList.append(dict({
-				"en": "(" + tense + ") " + t["en"],
-				"de": dePrintable,
-				"deOrig": deVerb.word,
-				"deWordLocation": deVerb.loc
+		#if we have a `kennen lernen` type verb going on
+		origWord = self.verb.word
+		if (self.conjugation.word != origWord):
+			words = self.verb.word.split(" ")
+			words[len(words) - 1] = self.conjugation.word
+			origWord = " ".join(words)
+			
+		for t in translations:
+			self.meanings.append(dict({
+				"en": "(" + self.tense + ") " + t["en"],
+				"de": fullForm,
+				"deOrig": origWord,
+				"deWordLocation": self.verb.loc
 			}))
+	
+	def dump(self):
+		print self.verb.word + "(" + (self.tense if self.tense != None else "helper") + ")",
+		if (self.child != None):
+			print " ->  ",
+			self.child.dump()

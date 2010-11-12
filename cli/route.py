@@ -1,5 +1,3 @@
-from app import translator
-import displayer
 
 from optparse import OptionParser
 
@@ -11,12 +9,19 @@ class router:
 		
 		(opts, args) = self.setupOptions()
 		
-		if (opts.word == None):
-			word = raw_input("Enter the word to translate: ")
+		if (opts.buildDict):
+			from dictionary import dictParser
+			dictParser.go()
 		else:
-			word = opts.word
-		
-		displayer.showResults(word, translator.translate(word))
+			from app import translator
+			import displayer
+			
+			if (opts.word == None):
+				word = raw_input("Enter the word to translate: ")
+			else:
+				word = opts.word
+			
+			displayer.showResults(word, translator.translate(word))
 		
 	def setupOptions(self):
 		"""Contains the command line option parser"""
@@ -31,6 +36,11 @@ class router:
 		parser.add_option("-w", "--word",
 			action="store", type="string", dest="word",
 			help="the word to translate (if not entered, will prompt)"
+		)
+		
+		parser.add_option("-d", "--build-dictionary",
+			action="store_true", default=False, dest="buildDict",
+			help="if the dictionary should be built"
 		)
 		
 		return parser.parse_args()

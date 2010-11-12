@@ -69,6 +69,7 @@ class tenses(object):
 	CONDITIONAL = "konj.2 in fut./pres."
 	CONDITIONAL_PAST = "konj.2 in past"
 	FUTURE = "future"
+	INFINITIVE = "infinitive"
 	PASSIVE_PAST = "past passive"
 	PASSIVE_PRESENT = "present passive"
 	PAST_PERFECT = "past perfect"
@@ -133,6 +134,8 @@ class verbNode(object):
 		self.meanings = []
 		
 		#the tense of our verb, none by default just for safe-keeping
+		#Note: if everything in the tree doesn't have a tense set, then the sentence is not 
+		# valid, so we couldn't determine any tenses
 		self.tense = None
 	
 	def setTense(self, tense):
@@ -192,8 +195,6 @@ class verbNode(object):
 				break
 	
 	def translate(self):
-		"""From the parent, gets the proper tense of this verb"""
-		
 		if (self.verb.isHelper()):
 			self.__translateAsHelper()
 		elif (self.verb.verb.isModal()):
@@ -205,7 +206,7 @@ class verbNode(object):
 	def __translateAsHelper(self):
 		#if we have a child, then we are helping the child change his tense
 		if (self.child != None):
-			self.child.__translateWithParent_helper(self)
+			self.child.__translateWithParent(self)
 		
 		#otherwise, we're operating as our own verb, yayz!
 		else:
@@ -226,28 +227,97 @@ class verbNode(object):
 		stem = self.verb.verb.getStem()
 		self.__setNormalTenses(form, stem)
 	
-	def __translateWithParent_helper(self, parent):
+	def __translateWithParent(self, parent):
 		"""Do a translation when our parent is a helper"""
 		
-		#if we're a modal and our parent a helper, then we need to rely on his form
 		if (self.verb.verb.isModal()):
-			self.__translateWithHelper_modal(parent)
-			self.child.translate()
+			#if we're a modal, and so is our parent
+			if (parent.verb.verb.isModal()):
+				self.__translateWithHelper_modal(parent)
+			
+			#otherwise, we're a modal and our parent is a helper
+			else:
+				self.__translateWithModal_helper(parent)
+			
+			#if we have two modals in a row, then we're doing something crazy
+			#and need to change the translation of our child verb, provided our
+			#child is not a helper with a child (ie. it's a standalone helper)
+			if (parent.verb.verb.isModal() and not (self.child.verb.isHelper() and self.child.child != None)):
+				self.child.__translateInheritedTense_modal(parent)
+			
+			#we need to determine how to translate our child
+			#if the child is a helper, then let him route normally
+			#if he isn't, then he needs to inherit the tense from us
+			elif (self.child.verb.isHelper()):
+				self.child.translate()
+			else:
+				self.child.__translateInheritedTense_helper(parent)
 			
 		#in german, you can't have two helpers in a row
 		else:
 			self.__translateWithHelper(parent)
+	
+	def __translateInheritedTense_helper(self, uberParent):
+		"""
+		Translates an inherited tense.  When we get here, it means we're doing something like:
+			
+			"Ich hätte sprechen sollen" -> "I should have spoken"
+			
+		Typically, since sprechen is in infinitive, it doesn't really have a tense as it's not
+		being directly modified by anything.  Therefore, we need to observe the parent tense
+		and use that to figure out our tense.
 		
-		print "--" + parent.verb.word
+		We're taking the uberParent (the parent of our parent) in order to figure this information
+		out as that is where the tense information is coming from.
+		"""
+		
+		form = uberParent.verb.verb.get(True)[0]
+		stem = uberParent.verb.verb.getStem()
+		
+		#this is the only case I can think of right now, more to come, I'm sure
+		if (form["subj2"] == stem):
+			self.setTense(tenses.PAST_PERFECT)
+		
+		#and add our translations to the output
+		for v in self.conjugation.verb.get(True):
+			trans = word.word(v["full"]).get("verb")
+			self.__meaning(trans, v["full"])
+	
+	def __translateInheritedTense_modal(self, uberParent):
+		"""
+		Translates an inherited tense.  When we get here, it means we're doing something like:
+			
+			"Ich würde bleiben müssen" -> "I would have to stay"
+		"""
+		
+		form = uberParent.verb.verb.get(True)[0]
+		stem = uberParent.verb.verb.getStem()
+		
+		#this is the only case I can think of right now, more to come, I'm sure
+		if (form["subj2"] == stem):
+			self.setTense(tenses.INFINITIVE)
+		
+		#and add our translations to the output
+		for v in self.conjugation.verb.get(True):
+			trans = word.word(v["full"]).get("verb")
+			self.__meaning(trans, v["full"])
 	
 	def __translateWithHelper_modal(self, parent):
 		form = parent.conjugation.verb.get(True)[0]
 		stem = parent.conjugation.verb.getStem()
 		
 		if (stem == form["subj2"]):
-			self.setTense(tenses.CONDITIONAL_PAST)
+			self.setTense(tenses.CONDITIONAL)
 		elif (stem in (form["first"], form["third"], form["stem"])):
 			self.setTense(tenses.PAST_PERFECT)
+	
+	def __translateWithModal_helper(self, parent):
+		form = parent.conjugation.verb.get(True)[0]
+		stem = parent.conjugation.verb.getStem()
+		
+		#probably more to be added in the future
+		if (stem == form["subj2"]):
+			self.setTense(tenses.CONDITIONAL_PAST)
 	
 	def __translateWithHelper(self, parent):
 		#grab our helper's conjugations and stuff
@@ -276,7 +346,7 @@ class verbNode(object):
 				if (helperConj in (helper["third"], helper["first"], helper["stem"])):
 					self.setTense(tenses.PAST_PERFECT)
 				elif (helperConj == helper["subj2"]):
-					self.setTense(tenses.KON2_IN_PAST)
+					self.setTense(tenses.CONDITIONAL_PAST)
 				elif (helperConj == helper["preterite"]):
 					self.setTense(tenses.PLUSQUAM)
 				
@@ -326,6 +396,11 @@ class verbNode(object):
 		dePrintable -- the german word that should be displayed in the translation table.
 		deVerb -- the word.word for the translation
 		"""
+		
+		#only add meanings if we have a tense
+		#otherwise, we're nothing
+		if (self.tense == None):
+			return
 		
 		#if we have a `kennen lernen` type verb going on
 		origWord = self.verb.word

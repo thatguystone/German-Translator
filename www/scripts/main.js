@@ -36,7 +36,11 @@ function search(query) {
 	
 	//clean out all the tags -- thanks jQuery!
 	//throw it into a <div> so that all the text (even that outside of tags) is returned
-	query = $("<div>" + unescape(query) + "</div>").text();
+	query = $("<div>" + unescape(query) + "</div>").text().trim();
+	
+	//remove all double spaces -- keep consistent with the backend
+	while (query.indexOf("  ") > -1)
+		query = query.replace("  ", " ");
 	
 	//set the value of the search box
 	$query.val(query);
@@ -78,7 +82,7 @@ function search(query) {
 						highlighted[currentWord] = "<span " + style + ">" + highlighted[currentWord] + "</span>";
 					}
 					
-					$table.append("<tr " + style + "><td>" + v.en + "</td><td>" + v.de + "</td></tr>");
+					$table.append("<tr " + style + "><td>" + v.en + "</td><td>" + v.de + " (" + v.deOrig + ")</td></tr>");
 				});
 				
 				$searchPhrase.html(highlighted.join(" "));

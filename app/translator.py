@@ -20,7 +20,10 @@ def printWords(words):
 
 class sentenceFigurer(object):
 	def __init__(self, query):
-		self.query = query
+		while (query.find("  ") > -1):
+			query = query.replace("  ", " ")
+		
+		self.query = query.strip()
 	
 	@classmethod
 	def canTranslate(cls, query):
@@ -34,7 +37,7 @@ class sentenceFigurer(object):
 
 class clauseFigurer(object):
 	def __init__(self, query):
-		self.query = query
+		self.query = query.strip()
 	
 	def translate(self):
 		"""Given a complete clause, finds relations amongst verbs and determines their tenses."""
@@ -72,6 +75,13 @@ class clauseFigurer(object):
 		#debugging dump of the tenses and nodes
 		#tree.dump()
 		
+		#grab all the used verbs
+		verbs = tmpVerbs[:]
+		[verbs.remove(v) for v in tree.getVerbs()]
+		#only add participles to our list if they're not already in the list
+		[participles.append(v) for v in verbs if v not in participles]
+		
+		#the meanings of the used, conjugated verbs
 		meanings = tree.getMeanings()
 		
 		#add our participles to our meanings
@@ -180,6 +190,11 @@ class verbTree(object):
 		self.node.appendMeanings(meanings)
 		return meanings
 	
+	def getVerbs(self):
+		verbs = []
+		self.node.appendVerbs(verbs)
+		return verbs
+	
 	def dump(self):
 		self.node.dump()
 		print
@@ -260,6 +275,11 @@ class verbNode(object):
 		[meanings.append(m) for m in self.meanings]
 		if (self.child != None):
 			self.child.appendMeanings(meanings)
+	
+	def appendVerbs(self, verbs):
+		verbs.append(self.verb)
+		if (self.child != None):
+			self.child.appendVerbs(verbs)
 	
 	def combineWithChild(self):
 		#first, let's see if it's even legal for us to combine with one of our children

@@ -68,8 +68,28 @@ class clauseFigurer(object):
 		
 		#add the mistaken participles to our participle list
 		[participles.append(v) for v in tree.pruneParticiples()]
-		
+
+		#debugging dump of the tenses and nodes
 		tree.dump()
+		
+		meanings = tree.getMeanings()
+		
+		#add our participles to our meanings
+		for p in participles:
+			presentParticiple = p.verb.isPresentParticiple()
+			fullForm = p.verb.get(True)[0]["full"]
+			origWord = p.verb.word
+			loc = p.loc
+			
+			for t in p.get("verb"):
+				meanings.append({
+					"en": "(" + ("present" if presentParticiple else "past") + " participle) " + t["en"],
+					"de": fullForm,
+					"deOrig": origWord,
+					"deWordLocation": loc
+				})
+		
+		return meanings
 
 class tenses(object):
 	CONDITIONAL = "konj.2 in fut./pres."
@@ -107,16 +127,27 @@ class verbTree(object):
 		#let's determine if we're in a nebensatz
 		#if the verb we found is in the middle of the collection of verbs at the end of the sentence
 		#or at the start of it, then we're looking at a nebensatz
-		fromEnd = self.numVerbs - i
+		fromEnd = self.numVerbs - (i + 1)
 		
-		if (fromEnd <= 3 and fromEnd > 0):
+		if ((fromEnd <= 3 and fromEnd >= 0)):
+			#we have a special case here: any helper in Konj2 form changes the form of the sentence
+			#so let's just do a quick check to see if we're dealing with that before we resign
+			#ourselves to a full-blown nebensatz
+			verb = self.verbs[i]
+			stem = verb.verb.getStem()
+			form = verb.verb.get(True)[0]
+			
+			if (fromEnd != 0 and form["subj2"] == stem):
+				self.node = verbNode(verb, self.verbs[i + 1:])
+			
 			#just to be sure -- check that the last word in the sentence is a helper or a modal
 			#Note: this has no impact on `kennen lernen` verbs as they are combined with parent / child
 			#on run, so their order doesn't really matter in nebensätze -> without a helper, they are
 			#combined, and with a helper, the fall into the below if and they are still combined
-			lastVerb = self.verbs[self.numVerbs - 1]
-			if (lastVerb.verb.isModal() or lastVerb.verb.isHelper()):
-				self.node = verbNode(lastVerb, self.verbs[:self.numVerbs - 1])
+			else:
+				lastVerb = self.verbs[self.numVerbs - 1]
+				if (lastVerb.verb.isModal() or lastVerb.verb.isHelper()):
+					self.node = verbNode(lastVerb, self.verbs[:self.numVerbs - 1])
 		
 		#if we weren't in a nebensatz, process as normal
 		if (self.node == None):
@@ -143,6 +174,11 @@ class verbTree(object):
 		self.node.pruneParticiples(None, participles)
 		
 		return participles
+	
+	def getMeanings(self):
+		meanings = []
+		self.node.appendMeanings(meanings)
+		return meanings
 	
 	def dump(self):
 		self.node.dump()
@@ -208,18 +244,22 @@ class verbNode(object):
 			participles.append(self.verb)
 			
 			if (self.child != None):
-				#make the parent bypass us -- we're not a verb, so we can't do anything
-				parent.child = self.child.child
+				if (parent != None):
+					#make the parent bypass us -- we're not a verb, so we can't do anything
+					parent.child = self.child
 				
 				#continue on with our child, but bypass us completely and just pass the new parent
 				#as his parent
 				self.child.pruneParticiples(parent, participles)
 		
 		#we don't qualify, move on to our child
-		else:
+		elif (self.child != None):
 			self.child.pruneParticiples(self, participles)
-		
-		
+	
+	def appendMeanings(self, meanings):
+		[meanings.append(m) for m in self.meanings]
+		if (self.child != None):
+			self.child.appendMeanings(meanings)
 	
 	def combineWithChild(self):
 		#first, let's see if it's even legal for us to combine with one of our children
@@ -259,7 +299,8 @@ class verbNode(object):
 			self.__translateAsHelper()
 		elif (self.verb.verb.isModal()):
 			self.__translateModal()
-			self.child.translate()
+			if (self.child != None):
+				self.child.translate()
 		else:
 			self.__standAlone()
 	
@@ -277,7 +318,6 @@ class verbNode(object):
 		form = self.conjugation.verb.get(True)[0]
 		stem = self.conjugation.verb.getStem()
 		self.__setNormalTenses(form, stem)
-		self.__meaning(self.verb.get("verb"), form["full"])
 	
 	def __translateModal(self):
 		"""This is only reached if the modal is stand-alone, so just do him by himself"""
@@ -285,7 +325,18 @@ class verbNode(object):
 		#just set our tense to the tense of our modal
 		form = self.verb.verb.get(True)[0]
 		stem = self.verb.verb.getStem()
-		self.__setNormalTenses(form, stem)
+		
+		#some modals have the same subj2 / preterite form -> I have no way to differentiate
+		if (stem == form["subj2"] and stem == form["preterite"]):
+			self.setTense(tenses.CONDITIONAL_PAST + " OR " + tenses.PRETERITE)
+		elif (stem == form["subj2"]):
+			self.setTense(tenses.CONDITIONAL_PAST)
+		elif (stem in (form["first"], form["third"], form["stem"])):
+			self.setTense(tenses.PRESENT)
+		elif (stem == form["preterite"]):
+			self.setTense(tenses.PRETERITE)
+		
+		self.__doTranslations(form["full"])
 	
 	def __translateWithParent(self, parent):
 		"""Do a translation when our parent is a helper"""
@@ -340,8 +391,7 @@ class verbNode(object):
 		
 		#and add our translations to the output
 		for v in self.conjugation.verb.get(True):
-			trans = word.word(v["full"]).get("verb")
-			self.__meaning(trans, v["full"])
+			self.__doTranslations(v["full"])
 	
 	def __translateInheritedTense_modal(self, uberParent):
 		"""
@@ -361,7 +411,7 @@ class verbNode(object):
 		for v in self.conjugation.verb.get(True):
 			trans = word.word(v["full"]).get("verb")
 			self.__meaning(trans, v["full"])
-	
+		
 	def __translateWithHelper_modal(self, parent):
 		form = parent.conjugation.verb.get(True)[0]
 		stem = parent.conjugation.verb.getStem()
@@ -370,7 +420,7 @@ class verbNode(object):
 			self.setTense(tenses.CONDITIONAL)
 		elif (stem in (form["first"], form["third"], form["stem"])):
 			self.setTense(tenses.PAST_PERFECT)
-	
+		
 	def __translateWithModal_helper(self, parent):
 		form = parent.conjugation.verb.get(True)[0]
 		stem = parent.conjugation.verb.getStem()
@@ -378,7 +428,9 @@ class verbNode(object):
 		#probably more to be added in the future
 		if (stem == form["subj2"]):
 			self.setTense(tenses.CONDITIONAL_PAST)
-	
+		
+		self.__doTranslations(self.verb.verb.get(True)[0]["full"])
+		
 	def __translateWithHelper(self, parent):
 		#grab our helper's conjugations and stuff
 		helperConj = parent.verb.verb.getStem()
@@ -399,9 +451,6 @@ class verbNode(object):
 		
 			#two loops...otherwise things get far too indented and painful
 			for v in verbs:
-				#get the translation 
-				trans = v.get("verb")
-				
 				#process the translation into its proper output form
 				if (helperConj in (helper["third"], helper["first"], helper["stem"])):
 					self.setTense(tenses.PAST_PERFECT)
@@ -412,7 +461,7 @@ class verbNode(object):
 				
 				#and set the translations with the full form of our word
 				#it can grab from our node the conjugated values, &etc.
-				self.__meaning(trans, v.word)
+				self.__doTranslations(v.word)
 			
 		#something going on with werden -> conditional present, passive voice
 		elif (helper["stem"] == "werd"):
@@ -421,8 +470,6 @@ class verbNode(object):
 			
 			#all the possible verbs (ex: gedenken + denken for gedacht)
 			for v in self.conjugation.verb.get(helper["full"]):
-				trans = word.word(v["full"]).get("verb")
-				
 				#if we're looking at an unconjugated form of the verb: sehen
 				if (conjugatedStem == v["stem"]):
 					if (helperConj == helper["subj2"]):
@@ -435,7 +482,7 @@ class verbNode(object):
 					elif (helperConj in (helper["third"], helper["first"], helper["stem"])):
 						self.setTense(tenses.PASSIVE_PRESENT)
 				
-				self.__meaning(trans, v["full"])
+				self.__doTranslations(v["full"])
 	
 	def __setNormalTenses(self, form, stem):
 		"""
@@ -449,13 +496,23 @@ class verbNode(object):
 			self.setTense(tenses.PRESENT)
 		elif (stem == form["preterite"]):
 			self.setTense(tenses.PRETERITE)
+		
+		self.__doTranslations(form["full"])
+	
+	def __doTranslations(self, fullForm):
+		#check if we're a `kennen lernen` type guy
+		toTranslate = fullForm
+		if (self.conjugation.word != self.verb.word):
+			words = self.verb.word.split(" ")
+			#get the original form of the word
+			words[len(words) - 1] = self.conjugation.word
+			toTranslate = " ".join(words)
+		
+		trans = word.word(toTranslate).get("verb")
+		self.__meaning(trans, fullForm)
 	
 	def __meaning(self, translations, fullForm):
-		"""
-		Puts the translations into the output dictionary list.
-		dePrintable -- the german word that should be displayed in the translation table.
-		deVerb -- the word.word for the translation
-		"""
+		"""Puts the translations into the output dictionary list."""
 		
 		#only add meanings if we have a tense
 		#otherwise, we're nothing
@@ -466,8 +523,12 @@ class verbNode(object):
 		origWord = self.verb.word
 		if (self.conjugation.word != origWord):
 			words = self.verb.word.split(" ")
+			#get the original form of the word
 			words[len(words) - 1] = self.conjugation.word
 			origWord = " ".join(words)
+			
+			#get the full form of the word
+			fullForm = self.verb.word
 			
 		for t in translations:
 			self.meanings.append(dict({

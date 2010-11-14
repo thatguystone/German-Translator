@@ -620,7 +620,8 @@ class canoo(internetInterface):
 				ret.append(self.__processPage(p))
 		else:
 			#grab the links
-			links = [l for l in p.find("td.contentWhite a[href^='/services/Controller?dispatch=inflection']") if pq(l).text().find("Verb") >= 0]
+			#(require there to be a "," after "Verb" -> fix for "Verboten")
+			links = [l for l in p.find("td.contentWhite a[href^='/services/Controller?dispatch=inflection']") if pq(l).text().find("Verb,") >= 0]
 			
 			#append all the information from all the pages we found in the search
 			for a in links:

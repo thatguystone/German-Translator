@@ -46,7 +46,9 @@ class clauseFigurer(object):
 		words = [word.word(w, i, numWords) for w, i in zip(rawWords, range(0, numWords))]
 		
 		#and run for all the possible verbs (participles could be included in this list)
-		possibleVerbs = [v for v in words if v.isVerb()]
+		tmpVerbs = [v for v in words if v.isVerb()]
+		possibleVerbs = [v for v in tmpVerbs if not v.verb.isPresentParticiple()]
+		participles = [v for v in tmpVerbs if v not in possibleVerbs]
 		
 		#step 2: since we are in a clause, we have isolation from all other verbs, so let's
 		#start building out our verb tree
@@ -63,6 +65,10 @@ class clauseFigurer(object):
 		tree = verbTree(possibleVerbs)
 		tree.build()
 		tree.translate()
+		
+		#add the mistaken participles to our participle list
+		[participles.append(v) for v in tree.pruneParticiples()]
+		
 		tree.dump()
 
 class tenses(object):
@@ -80,6 +86,7 @@ class tenses(object):
 class verbTree(object):
 	def __init__(self, verbs):
 		self.verbs = verbs
+		self.numVerbs = len(self.verbs)
 		self.node = None
 	
 	def build(self):
@@ -90,13 +97,32 @@ class verbTree(object):
 		"""
 		
 		#we can never start off with a participle -> that's not even a verb!
-		for i, v in zip(range(0, len(self.verbs)), self.verbs):
+		for i, v in zip(range(0, self.numVerbs), self.verbs):
 			if (v.verb.isParticiple()):
 				continue
 			
-			self.node = verbNode(v, self.verbs[i + 1:])
-			self.node.process()
+			verb = i
 			break
+	
+		#let's determine if we're in a nebensatz
+		#if the verb we found is in the middle of the collection of verbs at the end of the sentence
+		#or at the start of it, then we're looking at a nebensatz
+		fromEnd = self.numVerbs - i
+		
+		if (fromEnd <= 3 and fromEnd > 0):
+			#just to be sure -- check that the last word in the sentence is a helper or a modal
+			#Note: this has no impact on `kennen lernen` verbs as they are combined with parent / child
+			#on run, so their order doesn't really matter in nebensätze -> without a helper, they are
+			#combined, and with a helper, the fall into the below if and they are still combined
+			lastVerb = self.verbs[self.numVerbs - 1]
+			if (lastVerb.verb.isModal() or lastVerb.verb.isHelper()):
+				self.node = verbNode(lastVerb, self.verbs[:self.numVerbs - 1])
+		
+		#if we weren't in a nebensatz, process as normal
+		if (self.node == None):
+			self.node = verbNode(self.verbs[i], self.verbs[i + 1:])
+		
+		self.node.process()
 		
 	def translate(self):
 		if (self.node == None):
@@ -104,6 +130,19 @@ class verbTree(object):
 		
 		#and trigger the nodes to start giving their tenses back
 		self.node.translate()
+	
+	def pruneParticiples(self):
+		"""
+		Once we translate a sentence, we can go through and remove any participles caught at the end
+		of a clause that were mistaken for verbs.
+		"""
+		
+		participles = []
+		
+		#instruct the tree to prune itself
+		self.node.pruneParticiples(None, participles)
+		
+		return participles
 	
 	def dump(self):
 		self.node.dump()
@@ -113,7 +152,7 @@ class verbNode(object):
 	def __init__(self, verb, remainingVerbs):
 		#the defineable form of the verb
 		self.verb = verb
-		
+
 		#the remaining verbs that need put into the tree
 		self.remaining = remainingVerbs
 		self.lenRemain = len(remainingVerbs)
@@ -160,7 +199,28 @@ class verbNode(object):
 		#let's see if we can somehow combine with our child (for `kennen lernen` verbs)
 		if (self.child != None and not self.child.isCombined):
 			self.combineWithChild()
+	
+	def pruneParticiples(self, parent, participles):
+		#if we don't have a tense AND we're a past-participle, then we're clearly out of place
+		#all of the present ones were removed from the tree (those were easy), now we know
+		#(after the parse) what we definitely are
+		if (self.tense == None and self.verb.verb.isPastParticiple()):
+			participles.append(self.verb)
+			
+			if (self.child != None):
+				#make the parent bypass us -- we're not a verb, so we can't do anything
+				parent.child = self.child.child
+				
+				#continue on with our child, but bypass us completely and just pass the new parent
+				#as his parent
+				self.child.pruneParticiples(parent, participles)
 		
+		#we don't qualify, move on to our child
+		else:
+			self.child.pruneParticiples(self, participles)
+		
+		
+	
 	def combineWithChild(self):
 		#first, let's see if it's even legal for us to combine with one of our children
 		if (self.verb.verb.isModal() or self.verb.verb.isHelper()):

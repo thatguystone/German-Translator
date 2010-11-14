@@ -70,7 +70,7 @@ class clauseFigurer(object):
 		[participles.append(v) for v in tree.pruneParticiples()]
 
 		#debugging dump of the tenses and nodes
-		tree.dump()
+		#tree.dump()
 		
 		meanings = tree.getMeanings()
 		
@@ -359,9 +359,9 @@ class verbNode(object):
 			#we need to determine how to translate our child
 			#if the child is a helper, then let him route normally
 			#if he isn't, then he needs to inherit the tense from us
-			elif (self.child.verb.isHelper()):
+			elif (self.child != None and self.child.verb.isHelper()):
 				self.child.translate()
-			else:
+			elif (self.child != None):
 				self.child.__translateInheritedTense_helper(parent)
 			
 		#in german, you can't have two helpers in a row

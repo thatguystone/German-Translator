@@ -53,6 +53,7 @@ function search(query) {
 		beforeSend: function() {
 			$translations.addClass("loading");
 			$table.empty();
+			$searchPhrase.empty();
 		},
 		success: function(data) {
 			if (data.length == 0) {

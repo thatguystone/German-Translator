@@ -11,7 +11,7 @@ class router:
 		
 		if (opts.buildDict):
 			from dictionary import dictParser
-			dictParser.go()
+			dictParser.go(args)
 		else:
 			from app import translator
 			import displayer

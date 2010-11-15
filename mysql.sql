@@ -47,6 +47,27 @@ CREATE TABLE `canooWords` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `chemnitz`
+--
+
+DROP TABLE IF EXISTS `chemnitz`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `chemnitz` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `en` varchar(100) NOT NULL,
+  `enExt` varchar(200) NOT NULL,
+  `de` varchar(100) NOT NULL,
+  `deExt` varchar(200) NOT NULL,
+  `pos` enum('adjadv','noun','prep','verb') NOT NULL COMMENT 'Not piece of shit -- part of speech',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `en_2` (`en`,`de`,`pos`),
+  KEY `en` (`en`),
+  KEY `de` (`de`)
+) ENGINE=MyISAM AUTO_INCREMENT=387451 DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `leoWords`
 --
 
@@ -93,4 +114,4 @@ CREATE TABLE `searches` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2010-11-14 22:45:21
+-- Dump completed on 2010-11-15  0:34:46

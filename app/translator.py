@@ -50,9 +50,21 @@ class clauseFigurer(object):
 		
 		#and run for all the possible verbs (participles could be included in this list)
 		tmpVerbs = [v for v in words if v.isVerb()]
+		
+		#all the possible verbs in the sentence
 		possibleVerbs = [v for v in tmpVerbs if not v.verb.isPresentParticiple()]
+		
+		#the present participles that were originally mistaken for verbs -- they were excluded in
+		#the above statement, so we need to grab them here
 		participles = [v for v in tmpVerbs if v not in possibleVerbs]
+		
+		#only add in past participles if they're not in our list of possible verbs -- if it is really
+		#a participle and included in the list of possible verbs, it will be pruned out later
 		[participles.append(w) for w in words if w not in possibleVerbs and w.verb.isPastParticiple()]
+		
+		#present particples are easy -> only add them if they were not gotten from the mistaken list of
+		#verbs above
+		[participles.append(w) for w in words if w not in participles and w.verb.isPresentParticiple()]
 		
 		#step 2: since we are in a clause, we have isolation from all other verbs, so let's
 		#start building out our verb tree
@@ -79,12 +91,18 @@ class clauseFigurer(object):
 		#grab all the used verbs
 		verbs = tmpVerbs[:]
 		[verbs.remove(v) for v in tree.getVerbs()]
-		#only add participles to our list if they're not already in the list
+		
+		#only add participles to our list if they're not already in the list (no duplicates allowed)
+		#anything left over in verbs as this point was not used in the tree, so chances are it is
+		#a participle
 		[participles.append(v) for v in verbs if v not in participles]
 		
 		#the meanings of the used, conjugated verbs
 		meanings = tree.getMeanings()
-		
+		self.__participleMeanings(participles, meanings)
+		return meanings
+	
+	def __participleMeanings(self, participles, meanings):
 		#add our participles to our meanings
 		for p in participles:
 			presentParticiple = p.verb.isPresentParticiple()
@@ -109,8 +127,6 @@ class clauseFigurer(object):
 					"deOrig": origWord,
 					"deWordLocation": loc
 				})
-		
-		return meanings
 
 class tenses(object):
 	CONDITIONAL = "konj.2 in fut./pres."

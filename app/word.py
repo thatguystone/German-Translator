@@ -136,27 +136,9 @@ class cache(internetInterface):
 		
 		self.searchRan = True
 		
-		#before we do anything, make sure we haven't already searched for this and failed
-		success = self.db.query("""
-			SELECT `success` FROM `searches`
-			WHERE
-				`search`=%s
-				AND
-				`source`="leo"
-		""", (self.word))
-		
-		#if we have never done this search before
-		if (type(success) == bool):
-			words = self.__scrapeLeo()
-			self.__stashResults(words)
-			if (len(words) == 0):
-				return
-		elif (not success[0]['success']):
-			return
-		
 		#well, if we get here, then we know that we have some words stored
 		words = self.db.query("""
-			SELECT * FROM `leoWords`
+			SELECT * FROM `translations`
 			WHERE
 				`en`=%s
 				OR
@@ -164,6 +146,29 @@ class cache(internetInterface):
 			;
 		""", (self.word, self.word))
 		
+		#if we didn't find any words in our translations table
+		if (type(words) == bool):
+			#before we hit the internet, make sure we haven't already searched for this and failed
+			success = self.db.query("""
+				SELECT `success` FROM `searches`
+				WHERE
+					`search`=%s
+					AND
+					`source`="leo"
+			""", (self.word))
+			
+			#if we have never done this search before
+			if (type(success) == bool):
+				words = self.__scrapeLeo()
+				self.__stashResults(words)
+				if (len(words) == 0):
+					return
+			
+			#we've done this search and failed, just fail out
+			elif (not success[0]['success']):
+				return
+		
+		#we found some words -- add them to our list
 		self.__storeWords(words)
 	
 	def __storeWords(self, words):
@@ -231,7 +236,7 @@ class cache(internetInterface):
 			
 			for w in words:
 				self.db.insert("""
-					INSERT IGNORE INTO `leoWords`
+					INSERT IGNORE INTO `translations`
 					SET
 						`en`=%s,
 						`de`=%s,

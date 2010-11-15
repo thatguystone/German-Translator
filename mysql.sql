@@ -43,28 +43,7 @@ CREATE TABLE `canooWords` (
   KEY `subj2` (`subj2`),
   KEY `first` (`first`),
   KEY `participle` (`participle`)
-) ENGINE=MyISAM AUTO_INCREMENT=6 DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `leoWords`
---
-
-DROP TABLE IF EXISTS `leoWords`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `leoWords` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `en` varchar(100) NOT NULL,
-  `enExt` varchar(200) NOT NULL,
-  `de` varchar(100) NOT NULL,
-  `deExt` varchar(200) NOT NULL,
-  `pos` enum('adjadv','noun','prep','verb') NOT NULL COMMENT 'Not piece of shit -- part of speech',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `en_2` (`en`,`de`,`pos`),
-  KEY `en` (`en`),
-  KEY `de` (`de`)
-) ENGINE=MyISAM AUTO_INCREMENT=42 DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM AUTO_INCREMENT=7 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -81,7 +60,28 @@ CREATE TABLE `searches` (
   `success` tinyint(1) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `search` (`search`,`source`,`success`)
-) ENGINE=MyISAM AUTO_INCREMENT=16 DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM AUTO_INCREMENT=13 DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `translations`
+--
+
+DROP TABLE IF EXISTS `translations`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `translations` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `en` varchar(100) NOT NULL,
+  `enExt` varchar(200) NOT NULL,
+  `de` varchar(100) NOT NULL,
+  `deExt` varchar(200) NOT NULL,
+  `pos` enum('adjadv','noun','prep','verb') NOT NULL COMMENT 'Not piece of shit -- part of speech',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `en_2` (`en`,`de`,`pos`),
+  KEY `en` (`en`),
+  KEY `de` (`de`)
+) ENGINE=MyISAM AUTO_INCREMENT=387449 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
@@ -93,4 +93,4 @@ CREATE TABLE `searches` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2010-11-15 13:18:25
+-- Dump completed on 2010-11-15 13:39:28

@@ -33,7 +33,10 @@ class wordContainer(object):
 	
 	@classmethod
 	def pos(cls, en, de):
-		if (en.orig.find("to ") == 0):
+		#see if we have a modal
+		if (de.word in (u"mögen", "wollen", "sollen", "werden", u"können", u"müssen")):
+			pos = "verb"
+		elif (en.orig.find("to ") == 0):
 			pos = "verb"
 		elif (de.orig.find("{m}") >= 0 or de.orig.find("{f}") >= 0 or de.orig.find("{n}") >= 0 or de.orig.find("{pl}") >= 0):
 			pos = "noun"
@@ -122,7 +125,7 @@ class lineThread(threading.Thread):
 					for d in tmpInnerDe:
 						if (d.word != "" and e.word != ""):
 							self.db.insert("""
-								INSERT IGNORE INTO `chemnitz`
+								INSERT IGNORE INTO `translations`
 								SET
 									`en`=%s,
 									`de`=%s,

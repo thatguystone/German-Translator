@@ -52,6 +52,7 @@ class clauseFigurer(object):
 		tmpVerbs = [v for v in words if v.isVerb()]
 		possibleVerbs = [v for v in tmpVerbs if not v.verb.isPresentParticiple()]
 		participles = [v for v in tmpVerbs if v not in possibleVerbs]
+		[participles.append(w) for w in words if w not in possibleVerbs and w.isParticiple()]
 		
 		#step 2: since we are in a clause, we have isolation from all other verbs, so let's
 		#start building out our verb tree
@@ -73,7 +74,7 @@ class clauseFigurer(object):
 		[participles.append(v) for v in tree.pruneParticiples()]
 
 		#debugging dump of the tenses and nodes
-		#tree.dump()
+		tree.dump()
 		
 		#grab all the used verbs
 		verbs = tmpVerbs[:]
@@ -87,7 +88,17 @@ class clauseFigurer(object):
 		#add our participles to our meanings
 		for p in participles:
 			presentParticiple = p.verb.isPresentParticiple()
-			fullForm = p.verb.get(True)[0]["full"]
+			forms = p.verb.get(True)
+			
+			#if we found no conjugations for the verb, then we had something like "gesehenen",
+			#so we need to get a new word from the stem of the participle, then we let the
+			#translator run through all its stuff and get the meaning of the verb, and then to
+			#the output it goes
+			if (len(forms) == 0):
+				p = word.word(p.verb.getParticipleStem()[0])
+				forms = p.verb.get(True)
+			
+			fullForm = forms[0]["full"]
 			origWord = p.verb.word
 			loc = p.loc
 			
@@ -105,6 +116,7 @@ class tenses(object):
 	CONDITIONAL = "konj.2 in fut./pres."
 	CONDITIONAL_PAST = "konj.2 in past"
 	FUTURE = "future"
+	FUTURE2 = "future 2"
 	INFINITIVE = "infinitive"
 	PASSIVE_PAST = "past passive"
 	PASSIVE_PRESENT = "present passive"
@@ -137,9 +149,11 @@ class verbTree(object):
 		#let's determine if we're in a nebensatz
 		#if the verb we found is in the middle of the collection of verbs at the end of the sentence
 		#or at the start of it, then we're looking at a nebensatz
-		fromEnd = self.numVerbs - (i + 1)
+		fromEnd = self.verbs[i].numWords - (self.verbs[i].loc + 1)
 		
-		if ((fromEnd <= 3 and fromEnd >= 0)):
+		#only look at it if our verb is towards the end and it's not just some short clause
+		#with the verb in 1st or 2nd position, but that still happens to be near the end
+		if ((fromEnd <= 3 and fromEnd >= 0) and self.verbs[i].loc > 2):
 			#we have a special case here: any helper in Konj2 form changes the form of the sentence
 			#so let's just do a quick check to see if we're dealing with that before we resign
 			#ourselves to a full-blown nebensatz
@@ -381,10 +395,16 @@ class verbNode(object):
 			#if he isn't, then he needs to inherit the tense from us
 			elif (self.child != None and self.child.verb.isHelper()):
 				self.child.translate()
+			elif (self.child != None
+				and self.conjugation.word == word.canoo.helperWerden
+				and self.verb.isHelper()
+			):
+				self.translate()
 			elif (self.child != None):
 				self.child.__translateInheritedTense_helper(parent)
 			
-		#in german, you can't have two helpers in a row
+		#in german, you can't have two helpers in a row (unless you're doing the FuturII tense...but
+		#that's just confusion anyway)
 		else:
 			self.__translateWithHelper(parent)
 	
@@ -482,10 +502,17 @@ class verbNode(object):
 				#and set the translations with the full form of our word
 				#it can grab from our node the conjugated values, &etc.
 				self.__doTranslations(v.word)
-			
+		
+		#this is a special-case tense -> the combination of a helper and a modal...owwies
+		elif (helper["stem"] == "werd"
+			and self.verb.word in (word.canoo.helperHaben, word.canoo.helperSein)
+			and self.child != None
+			and self.child.conjugation.verb.getStem() == self.child.conjugation.verb.get(True)[0]["perfect"]
+		):
+			self.child.setTense(tenses.FUTURE2)
+			self.child.__doTranslations(self.child.conjugation.verb.get(True)[0]["full"])
 		#something going on with werden -> conditional present, passive voice
 		elif (helper["stem"] == "werd"):
-			
 			conjugatedStem = self.conjugation.verb.getStem()
 			
 			#all the possible verbs (ex: gedenken + denken for gedacht)

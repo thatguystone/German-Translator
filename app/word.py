@@ -417,7 +417,7 @@ class canoo(internetInterface):
 		for end in ("es", "en", "er", "em", "e"):
 			if (w[len(w) - len(end):] == end): #remove the end, but only once (thus, rstrip doesn't work)
 				w = w[:len(w) - len(end)]
-				break			
+				break
 		
 		forms = word(w).verb.get(True)
 		if (len(forms) == 0):

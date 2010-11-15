@@ -57,7 +57,7 @@ class wordContainer(object):
 		word = re.sub(r'(\[.*\])', "", word)
 		word = re.sub(r'(\{.*\})', "", word)
 		
-		word = word.strip()
+		word = word.strip("\"").strip()
 		
 		#remove extra words from the definition
 		words = word.split(" ")

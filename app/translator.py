@@ -90,7 +90,7 @@ class clauseFigurer(object):
 		
 		#grab all the used verbs
 		verbs = tmpVerbs[:]
-		[verbs.remove(v) for v in tree.getVerbs()]
+		[verbs.remove(v) for v in tree.getVerbs() if v in verbs]
 		
 		#only add participles to our list if they're not already in the list (no duplicates allowed)
 		#anything left over in verbs as this point was not used in the tree, so chances are it is
@@ -169,7 +169,7 @@ class verbTree(object):
 		
 		#only look at it if our verb is towards the end and it's not just some short clause
 		#with the verb in 1st or 2nd position, but that still happens to be near the end
-		if ((fromEnd <= 3 and fromEnd >= 0) and self.verbs[i].loc > 2):
+		if ((fromEnd <= 3 and fromEnd >= 0) and self.verbs[i].loc >= 2):
 			#we have a special case here: any helper in Konj2 form changes the form of the sentence
 			#so let's just do a quick check to see if we're dealing with that before we resign
 			#ourselves to a full-blown nebensatz
@@ -253,6 +253,9 @@ class verbNode(object):
 		#and the translations for our verb
 		self.meanings = []
 		
+		#for if we combine with a child
+		self.verbs = None
+		
 		#the tense of our verb, none by default just for safe-keeping
 		#Note: if everything in the tree doesn't have a tense set, then the sentence is not 
 		# valid, so we couldn't determine any tenses
@@ -307,7 +310,12 @@ class verbNode(object):
 			self.child.appendMeanings(meanings)
 	
 	def appendVerbs(self, verbs):
-		verbs.append(self.verb)
+		if (self.verbs != None):
+			for v in self.verbs:
+				verbs.append(v)
+		else:
+			verbs.append(self.verb)
+		
 		if (self.child != None):
 			self.child.appendVerbs(verbs)
 	
@@ -339,6 +347,9 @@ class verbNode(object):
 				
 				#we're absorbing our child, remove him
 				self.child = self.child.child
+				
+				#and store the verbs we used to return in appendVerbs()
+				self.verbs = (first, second)
 				
 				#and set our flag that we're not combined with our child
 				self.isCombined = True

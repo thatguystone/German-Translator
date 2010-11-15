@@ -16,10 +16,10 @@ class mysql(object):
 	
 	def __init__(self):
 		self.__db = MySQLdb.connect(
-			host = config.get("deutsch", "database.host"),
-			user = config.get("deutsch", "database.user"),
-			passwd = config.get("deutsch", "database.pass"),
-			db = config.get("deutsch", "database.db"),
+			host = config.get("deutsch", "database.host", raw=True),
+			user = config.get("deutsch", "database.user", raw=True),
+			passwd = config.get("deutsch", "database.pass", raw=True),
+			db = config.get("deutsch", "database.db", raw=True),
 			charset = "utf8",
 			use_unicode = True
 		)

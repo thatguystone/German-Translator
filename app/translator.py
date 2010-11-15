@@ -42,8 +42,8 @@ class clauseFigurer(object):
 	def translate(self):
 		"""Given a complete clause, finds relations amongst verbs and determines their tenses."""
 		
-		#step 1: get all the words in the sentence
-		rawWords = self.query.replace("-", "").split(" ")
+		#step 1: get all the words in the sentence and remove punctuation
+		rawWords = self.query.replace("-", "").replace("!", "").replace(".", "").replace(",", "").split(" ")
 		numWords = len(rawWords)
 		#and assign those words their locations
 		words = [word.word(w, i, numWords) for w, i in zip(rawWords, range(0, numWords))]
@@ -52,7 +52,7 @@ class clauseFigurer(object):
 		tmpVerbs = [v for v in words if v.isVerb()]
 		possibleVerbs = [v for v in tmpVerbs if not v.verb.isPresentParticiple()]
 		participles = [v for v in tmpVerbs if v not in possibleVerbs]
-		[participles.append(w) for w in words if w not in possibleVerbs and w.isParticiple()]
+		[participles.append(w) for w in words if w not in possibleVerbs and w.verb.isPastParticiple()]
 		
 		#step 2: since we are in a clause, we have isolation from all other verbs, so let's
 		#start building out our verb tree

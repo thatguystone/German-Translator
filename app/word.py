@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 from config import config
 import urllib
-import re
 from pyquery import PyQuery as pq
+import re
 import time
+import os
+import codecs
 
 from mysql import mysql
 import translator
@@ -709,14 +711,28 @@ class canoo(internetInterface):
 		)
 	
 	def __getCanooPage(self, url):
-		"""Canoo has mechanisms to stop scraping, so we have to pause before hit the links too much"""
+		"""Canoo has mechanisms to stop scraping, so we have to pause before we hit the links too much"""
+		
+		#do we have a saved copy of the page locally?
+		path = os.path.abspath(__file__ + "/../../cache/canoo")
+		fileUrl = url.replace("/", "$")
+		if (os.path.exists(path + "/" + fileUrl)):
+			f = codecs.open(path + "/" + fileUrl, encoding="utf-8", mode="r")
+			page = f.read()
+			f.close()
+			return pq(page)
 		
 		#make sure these are python-"static" (*canoo* instead of *self*)
 		if (canoo.lastCanooLoad != -1 and ((time.clock() - self.lastCanooLoad) < canoo.canooWait)):
 			time.sleep(canoo.canooWait - (time.clock() - self.lastCanooLoad))
 		
 		canoo.lastCanooLoad = time.clock()
-		return pq(url)
+		page = pq(url)
+		
+		f = codecs.open(path + "/" + fileUrl, encoding="utf-8", mode="w")
+		f.write(page.html())
+		f.close()
+		return page
 	
 	def __stashResults(self, res):
 		if (len(res) == 0):

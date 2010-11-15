@@ -74,7 +74,7 @@ class clauseFigurer(object):
 		[participles.append(v) for v in tree.pruneParticiples()]
 
 		#debugging dump of the tenses and nodes
-		tree.dump()
+		#tree.dump()
 		
 		#grab all the used verbs
 		verbs = tmpVerbs[:]

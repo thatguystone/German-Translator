@@ -1,3 +1,4 @@
 Dependencies:
 	python-mysqldb
 	python-pyquery
+	python-json

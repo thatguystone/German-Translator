@@ -1,5 +1,5 @@
 AddHandler mod_python .py
-PythonHandler /home/andi/Dev/NYU/Deutsch/www/index.py
+PythonHandler ./index.py
 PythonDebug On
 
 RewriteEngine on

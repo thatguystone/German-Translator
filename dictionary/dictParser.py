@@ -34,7 +34,9 @@ class wordContainer(object):
 	@classmethod
 	def pos(cls, en, de):
 		#see if we have a modal
-		if (de.word in (u"mögen", "wollen", "sollen", "werden", u"können", u"müssen")):
+		if ((de.word.find("{adj}") == -1 and de.word.find("{vt}") == -1 and de.word.find("{vi}") == -1)
+			and de.word in (u"mögen", "wollen", "sollen", "werden", u"können", u"müssen")
+		):
 			pos = "verb"
 		elif (en.orig.find("to ") == 0):
 			pos = "verb"
@@ -145,6 +147,7 @@ class lineThread(threading.Thread):
 	#chemnitz did some bad formatting with their output
 	def cleanLine(self, line):
 		line = re.sub(r'(\{.*;.*\})', "", line)
+		line = re.sub(r'(\(.*;.*\))', "", line)
 		line = line.strip()
 		return line
 	

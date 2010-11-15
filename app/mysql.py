@@ -46,6 +46,7 @@ class mysql(object):
 		own function."""
 		
 		res = self.query(sql, args)
+		self.__db.commit()
 		
 		if (self.__db.insert_id() != 0 and bool(res)):
 			ret = self.__db.insert_id()

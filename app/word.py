@@ -48,7 +48,7 @@ class word(object):
 	
 	def isVerb(self):
 		#check to see if we are captalized -> nice indication we're not a verb
-		if (self.word[0] >= 'A' and self.word[0] <= 'Z'):
+		if ((self.isNoun() or self.isAdjAdv()) and self.word[0] >= 'A' and self.word[0] <= 'Z'):
 			#make sure we're not at the beginning of a sentence -- that would be embarassing
 			if (self.loc != 0):
 				return False

@@ -720,6 +720,8 @@ class canoo(internetInterface):
 	def __getCanooPage(self, url):
 		"""Canoo has mechanisms to stop scraping, so we have to pause before we hit the links too much"""
 		
+		url = url.replace("http://www.canoo.net/", "http://www.canoo.net.nyud.net/")
+		
 		#do we have a saved copy of the page locally?
 		path = os.path.abspath(__file__ + "/../../cache/canoo")
 		fileUrl = url.replace("/", "$")
@@ -730,10 +732,10 @@ class canoo(internetInterface):
 			return pq(page)
 		
 		#make sure these are python-"static" (*canoo* instead of *self*)
-		if (canoo.lastCanooLoad != -1 and ((time.clock() - self.lastCanooLoad) < canoo.canooWait)):
-			time.sleep(canoo.canooWait - (time.clock() - self.lastCanooLoad))
+		if (canoo.lastCanooLoad != -1 and ((time.time() - self.lastCanooLoad) < canoo.canooWait)):
+			time.sleep(canoo.canooWait - (time.time() - self.lastCanooLoad))
 		
-		canoo.lastCanooLoad = time.clock()
+		canoo.lastCanooLoad = time.time()
 		page = pq(url)
 		
 		f = codecs.open(path + "/" + fileUrl, encoding="utf-8", mode="w")

@@ -43,7 +43,7 @@ CREATE TABLE `canooWords` (
   KEY `subj2` (`subj2`),
   KEY `first` (`first`),
   KEY `participle` (`participle`)
-) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=28 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -60,7 +60,7 @@ CREATE TABLE `searches` (
   `success` tinyint(1) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `search` (`search`,`source`,`success`)
-) ENGINE=InnoDB AUTO_INCREMENT=2604 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=32 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -82,7 +82,7 @@ CREATE TABLE `translations` (
   KEY `de` (`de`),
   KEY `en_de` (`en`,`de`),
   KEY `en` (`en`)
-) ENGINE=InnoDB AUTO_INCREMENT=391271 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=391245 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
@@ -94,4 +94,4 @@ CREATE TABLE `translations` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2010-11-19 15:32:06
+-- Dump completed on 2010-11-19 16:37:18

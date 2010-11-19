@@ -1,5 +1,5 @@
 body {
-	background: url(/images/bg.png);
+	background: url(../images/bg.png);
 }
 
 .content {
@@ -7,7 +7,7 @@ body {
 	width: 700px;
 }
 	.content .title {
-		background: url(/images/logo.png) no-repeat center;
+		background: url(../images/logo.png) no-repeat center;
 		height: 75px;
 	}
 	.content .input {
@@ -25,13 +25,13 @@ body {
 		}
 	
 	.content .searchPhrase span {
-		background: url(/images/translations.bg.png) repeat-x center top;
+		background: url(../images/translations.bg.png) repeat-x center top;
 	}
 	
 	.content .translations {
 	}
 	.content .translations.loading {
-		background: url(/images/loading.gif) no-repeat center;
+		background: url(../images/loading.gif) no-repeat center;
 		height: 32px;
 	}
 		.content .translations.loading table {
@@ -48,7 +48,7 @@ body {
 				padding: 5px 50px;
 			}
 			.content .translations table td {
-				background: url(/images/translations.bg.png) repeat-x;
+				background: url(../images/translations.bg.png) repeat-x;
 				border-bottom: 1px solid #000;
 				padding: 3px 10px;
 			}

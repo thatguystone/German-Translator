@@ -450,7 +450,7 @@ class canoo(internetInterface):
 			return False
 		
 		#in order to be a participle, the stem has to come in as "participle" or "perfect"
-		return (form["perfect"] == self.getStem(stem))
+		return (form["perfect"] == stem) or (form["perfect"] == self.getStem(stem))
 	
 	def isParticiple(self):
 		stem, form = self.getParticipleStem()

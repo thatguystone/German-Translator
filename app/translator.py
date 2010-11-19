@@ -45,6 +45,7 @@ class clauseFigurer(object):
 		#step 1: get all the words in the sentence and remove punctuation
 		rawWords = self.query.replace("-", "").replace("!", "").replace(".", "").replace(",", "").split(" ")
 		numWords = len(rawWords)
+		
 		#and assign those words their locations
 		words = [word.word(w, i, numWords) for w, i in zip(rawWords, range(0, numWords))]
 		
@@ -80,10 +81,15 @@ class clauseFigurer(object):
 		#pass it onto the tree constructor to build out our verb tree
 		tree = verbTree(possibleVerbs)
 		tree.build()
-		tree.translate()
+		
+		#do our first pass on the tree to clean out the remaining participles
+		tree.translate(translate = False)
 		
 		#add the mistaken participles to our participle list
-		[participles.append(v) for v in tree.pruneParticiples()]
+		participles += tree.pruneParticiples()
+		
+		#do a second pass (now that it's clean) for the actual tenses and translations
+		tree.translate(translate = True)
 
 		#debugging dump of the tenses and nodes
 		#tree.dump()
@@ -108,16 +114,19 @@ class clauseFigurer(object):
 			presentParticiple = p.verb.isPresentParticiple()
 			forms = p.verb.get(True)
 			
+			#save the full form of our word for the translation
+			origWord = p.verb.word
+			
 			#if we found no conjugations for the verb, then we had something like "gesehenen",
 			#so we need to get a new word from the stem of the participle, then we let the
 			#translator run through all its stuff and get the meaning of the verb, and then to
 			#the output it goes
 			if (len(forms) == 0):
-				p = word.word(p.verb.getParticipleStem()[0])
+				p = word.word(p.verb.getParticipleStem()[0], p.loc, p.numWords)
 				forms = p.verb.get(True)
+				
 			
 			fullForm = forms[0]["full"]
-			origWord = p.verb.word
 			loc = p.loc
 			
 			#fix for python 2.4
@@ -200,9 +209,16 @@ class verbTree(object):
 		
 		self.node.process()
 		
-	def translate(self):
+	def translate(self, translate = False):
+		"""
+		Triggers translate on the tree.
+		translate (bool) - If meanings should be looked up
+		"""
+		
 		if (self.node == None):
 			return
+		
+		verbNode.doTranslations = translate
 		
 		#and trigger the nodes to start giving their tenses back
 		self.node.translate()
@@ -235,6 +251,8 @@ class verbTree(object):
 		print
 
 class verbNode(object):
+	doTranslations = False
+	
 	def __init__(self, verb, remainingVerbs):
 		#the defineable form of the verb
 		self.verb = verb
@@ -296,11 +314,11 @@ class verbNode(object):
 		if (self.tense == None and self.verb.verb.isPastParticiple()):
 			participles.append(self.verb)
 			
+			if (parent != None):
+				#make the parent bypass us -- we're not a verb, so we can't do anything
+				parent.child = self.child
+			
 			if (self.child != None):
-				if (parent != None):
-					#make the parent bypass us -- we're not a verb, so we can't do anything
-					parent.child = self.child
-				
 				#continue on with our child, but bypass us completely and just pass the new parent
 				#as his parent
 				self.child.pruneParticiples(parent, participles)
@@ -579,6 +597,9 @@ class verbNode(object):
 		self.__doTranslations(form["full"])
 	
 	def __doTranslations(self, fullForm):
+		if (not verbNode.doTranslations):
+			return
+		
 		#check if we're a `kennen lernen` type guy
 		toTranslate = fullForm
 		if (self.conjugation.word != self.verb.word):
@@ -620,7 +641,7 @@ class verbNode(object):
 	def dump(self):
 		#arg, python2.4!
 		tense = self.tense
-		if self.tense != None:
+		if self.tense == None:
 			tense = "helper"
 			
 		print self.verb.word + "(" + tense + ")",

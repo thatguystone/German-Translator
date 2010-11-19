@@ -5,7 +5,7 @@ import utf8
 
 def translate(query):
 	"""Does the hefty work of translating the input"""
-	
+
 	query = utf8.encode(query)
 	
 	if (sentenceFigurer.canTranslate(query)):
@@ -120,9 +120,14 @@ class clauseFigurer(object):
 			origWord = p.verb.word
 			loc = p.loc
 			
+			#fix for python 2.4
+			tense = "past"
+			if presentParticiple:
+				tense = "present"
+			
 			for t in p.get("verb"):
 				meanings.append({
-					"en": "(" + ("present" if presentParticiple else "past") + " participle) " + t["en"],
+					"en": "(" + tense + " participle) " + t["en"],
 					"de": fullForm,
 					"deOrig": origWord,
 					"deWordLocation": loc
@@ -613,7 +618,12 @@ class verbNode(object):
 			}))
 	
 	def dump(self):
-		print self.verb.word + "(" + (self.tense if self.tense != None else "helper") + ")",
+		#arg, python2.4!
+		tense = self.tense
+		if self.tense != None:
+			tense = "helper"
+			
+		print self.verb.word + "(" + tense + ")",
 		if (self.child != None):
 			print " ->  ",
 			self.child.dump()

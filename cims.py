@@ -1,6 +1,7 @@
-#!/usr/bin/env python2.6
+#!/usr/bin/python2.4
 # -*- coding: utf-8 -*-
 
+from cims import hacks
 import config
 
 def main():

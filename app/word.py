@@ -701,7 +701,9 @@ class canoo(internetInterface):
 		stem = self.getStem(full)
 		
 		#attempt to get the helper verb
-		helper = self.helperHaben if (page.find("div#WordClass").prevAll("table").text().find("Hilfsverb: haben") != -1) else self.helperSein
+		helper = self.helperSein
+		if (page.find("div#WordClass").prevAll("table").text().find("Hilfsverb: haben") != -1):
+			helper = self.helperHaben 
 		
 		return dict(
 			full = full,

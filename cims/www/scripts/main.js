@@ -9,14 +9,16 @@ $(function() {
 	$query = $("#query");
 	$table = $("#translations");
 	$searchPhrase = $("#searchPhrase");
-
+	
+	$query.focus();
+	
 	$("#translationInputs").submit(function() {
 		search($query.val());
 		return false;
 	});
 	
 	//get the query from the url
-	query = document.location.pathname.substring(1);
+	query = document.location.pathname.replace("/~abs407/deutsch", "").substring(1);
 	
 	//if we have a query...
 	if (query.length > 0) {
@@ -50,7 +52,7 @@ function search(query) {
 	var highlighted = query.replace("-", "").split(" ");
 	
 	$.ajax({
-		url: "/api/",
+		url: "../cgi-bin/deApi.cgi/",
 		type: "get",
 		data: {"input": query},
 		dataType: "json",

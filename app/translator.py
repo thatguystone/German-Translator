@@ -8,6 +8,10 @@ def translate(query):
 
 	query = utf8.encode(query)
 	
+	#replace ae, oe, ue with ä, ö, ü
+	for i in (("ae", u"ä"), ("oe", u"ö"), ("ue", u"ü")):
+		query = query.replace(i[0], i[1])
+	
 	if (sentenceFigurer.canTranslate(query)):
 		s = sentenceFigurer(query)
 		return s.translate()
@@ -43,7 +47,7 @@ class clauseFigurer(object):
 		"""Given a complete clause, finds relations amongst verbs and determines their tenses."""
 		
 		#step 1: get all the words in the sentence and remove punctuation
-		rawWords = self.query.replace("-", "").replace("!", "").replace(".", "").replace(",", "").split(" ")
+		rawWords = self.query.replace("-", "").replace("!", "").replace("?", "").replace(".", "").replace(",", "").split(" ")
 		numWords = len(rawWords)
 		
 		#and assign those words their locations
@@ -92,7 +96,7 @@ class clauseFigurer(object):
 		tree.translate(translate = True)
 
 		#debugging dump of the tenses and nodes
-		#tree.dump()
+		tree.dump()
 		
 		#grab all the used verbs
 		verbs = tmpVerbs[:]
@@ -534,11 +538,11 @@ class verbNode(object):
 			
 			#is the verb in the right form for having a helper?
 			#check here to make sure that the entered verb is in the right past-tense form
-			for v in self.conjugation.verb.get(helper["full"]):
+			for v in self.conjugation.verb.get(helper = helper["full"]):
 				#make sure we have the right helper, too
 				if (v["perfect"] == stem and v["hilfsverb"] == helper["full"]):
 					verbs.append(word.word(v["full"]))
-		
+			
 			#two loops...otherwise things get far too indented and painful
 			for v in verbs:
 				#process the translation into its proper output form

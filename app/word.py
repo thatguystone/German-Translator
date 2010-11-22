@@ -356,7 +356,7 @@ class canoo(internetInterface):
 	lastCanooLoad = -1
 	
 	#seems to load fine after a second
-	canooWait = 1
+	canooWait = 5
 	
 	#external definitions for the helper verbs
 	helper = "haben"
@@ -459,7 +459,7 @@ class canoo(internetInterface):
 			return False
 		
 		#in order to be a participle, the stem has to come in as "participle" or "perfect"
-		return (form["participle"] == stem or form["perfect"] == self.getStem(stem))
+		return (form["participle"] == stem or form["perfect"] == self.getStem(stem) or form["perfect"] == stem)
 	
 	def isModal(self):
 		forms = self.get(True)
@@ -471,7 +471,7 @@ class canoo(internetInterface):
 		
 		return (form["full"] in (u"mögen", "wollen", "sollen", "werden", u"können", u"müssen"))
 	
-	def get(self, unknownHelper = False, returnAll = False):
+	def get(self, unknownHelper = False, returnAll = False, helper = ""):
 		"""
 		Gets the verb forms with their helpers.
 		-unknownHelper = the helper is not known, just return the first matching with any helper
@@ -479,6 +479,9 @@ class canoo(internetInterface):
 		"""
 		
 		self.__search()
+		
+		if (helper != ""):
+			self.helper = helper
 		
 		if (returnAll):
 			return self.words
@@ -511,6 +514,9 @@ class canoo(internetInterface):
 		#come in all forms, and the chances that we did a search on the exact form we have are
 		#1:6....so let's just risk it
 		
+		stemArgs = (self.word, stem, stem, stem, stem, stem, stem, stem)
+		wordArgs = (self.word, self.word, self.word, self.word, self.word, self.word, self.word, self.word)
+		
 		rows = self.db.query("""
 			SELECT * FROM `canooWords`
 			WHERE
@@ -530,9 +536,9 @@ class canoo(internetInterface):
 				OR
 				`participle`=%s
 			;
-		""", (self.word, stem, stem, stem, stem, stem, stem, stem))
+		""", stemArgs)
 		
-		if (type(rows) != tuple):
+		if (type(rows) != tuple and stemArgs != wordArgs):
 			#it's entirely possible that we're removing verb endings too aggressively, so make a pass
 			#on the original verb we were given, just for safety (and to save time -- hitting canoo
 			#is INCREDIBLY expensive)
@@ -555,11 +561,12 @@ class canoo(internetInterface):
 					OR
 					`participle`=%s
 				;
-			""", (self.word, self.word, self.word, self.word, self.word, self.word, self.word, self.word))
+			""", wordArgs)
 		
 		#but if we still haven't found anything...we must give up :(
 		if (type(rows) != tuple):
 			rows = self.__scrapeCanoo()
+			#rows = self.__scrapeWoxikon()
 			self.__stashResults(rows)
 		
 		if (len(rows) > 0):
@@ -583,6 +590,98 @@ class canoo(internetInterface):
 				#save the word to our helper verb table
 				self.words[r["hilfsverb"]].append(tmp)
 	
+	def __scrapeWoxikon(self):
+		if (self.hitInternet):
+			return []
+		
+		self.hitInternet = True
+		
+		#first, check to see if we've failed on this search before
+		failed = self.db.query("""
+			SELECT 1 FROM `searches`
+			WHERE
+				`search`=%s
+				AND
+				`source`="canoo"
+				AND
+				`success`=0
+		""", (self.word))
+		
+		if (failed):
+			return []
+		
+		urlWord = self.word
+		for r in ((u"ß", "%C3%9F"), (u"ä", "%C3%A4"), (u"ü", "%C3%BC"), (u"ö", "%C3%B6")):
+			urlWord = urlWord.replace(r[0], r[1])
+		
+		url = "http://verben.woxikon.de/verbformen/%s.php" % urlWord
+		
+		#do we have a saved copy of the page locally?
+		path = os.path.abspath(__file__ + "/../../cache/woxikon")
+		fileUrl = url.replace("/", "$")
+		if (os.path.exists(path + "/" + fileUrl)):
+			f = codecs.open(path + "/" + fileUrl, encoding="utf-8", mode="r")
+			page = pq(f.read())
+			f.close()
+		else:
+			page = pq(url)
+			time.sleep(.5)
+			f = codecs.open(path + "/" + fileUrl, encoding="utf-8", mode="w")
+			f.write(page.html())
+			f.close()
+			
+		if (page.find("title").eq(0).text() == "Keine Ergebnisse"):
+			return []
+		
+		#the first is our verb info table
+		info = page.find("#index").find("table.verbFormsTable").eq(0).find("tr")
+		
+		prefix = info.eq(3).find("td").eq(0).text()
+		if (prefix == None or prefix == "-" or prefix[0] == "("):
+			prefix = ""
+		participle = info.eq(6).find("td").eq(0).text()
+		
+		tbl = page.find("#verbFormsTable tr")
+		
+		full = self.word
+		stem = self.getStem(full)
+		
+		if (tbl.eq(1).find("td").eq(0).text() == None):
+			return []
+		
+		first = self.getStem(prefix + tbl.eq(1).find("td").eq(0).text().split(" ")[0])
+		
+		if (first == prefix + "-"):
+			return []
+		
+		third = self.getStem(prefix + tbl.eq(1).find("td").eq(2).text().split(" ")[0])
+		preterite = self.getStem(prefix + tbl.eq(2).find("td").eq(0).text().split(" ")[0])
+		perfect = self.getStem(tbl.eq(7).find("td").eq(0).text().split(" ").pop())
+		subj2 = self.getStem(prefix + tbl.eq(6).find("td").eq(0).text().split(" ")[0])
+		
+		hilfsverb = tbl.eq(7).find("td").eq(3).text().split(" ")[0]
+		if (hilfsverb == "sind"):
+			hilfsverb = "sein"
+		if (hilfsverb not in ("haben", "sein")):
+			hilfsverb = "haben"
+		
+		return [dict(
+			full = self.removeParens(full),
+			hilfsverb = self.removeParens(hilfsverb),
+			stem = self.removeParens(stem),
+			preterite = self.removeParens(preterite),
+			perfect = self.removeParens(perfect),
+			first = self.removeParens(first),
+			third = self.removeParens(third),
+			subj2 = self.removeParens(subj2),
+			participle = self.removeParens(participle)
+		)]
+	
+	def removeParens(self, word):
+		if (word == None):
+			return None
+		return word.replace("(", "").replace(")", "")
+		
 	def __scrapeCanoo(self):
 		"""Grabs the inflections of all verbs that match the query"""
 		
@@ -648,7 +747,12 @@ class canoo(internetInterface):
 	
 	def __pyQueryGetTable(self, tables, header):
 		"""Canoo changed its layout...now I have to do more brute-forcing to grab the info"""
-		return tables.filter(lambda i: pq(this).text() == header).closest("table").find("tr")
+		for h in (header, header + u" regelmäßig"):
+			t = tables.filter(lambda i: pq(this).text() == h).closest("table").find("tr")
+			if (len(t) != 0):
+				return t
+		
+		return ()
 	
 	def __processPage(self, page):
 		#just use "q" for a basic "query" holder
@@ -720,8 +824,6 @@ class canoo(internetInterface):
 	def __getCanooPage(self, url):
 		"""Canoo has mechanisms to stop scraping, so we have to pause before we hit the links too much"""
 		
-		url = url.replace("http://www.canoo.net/", "http://www.canoo.net.nyud.net/")
-		
 		#do we have a saved copy of the page locally?
 		path = os.path.abspath(__file__ + "/../../cache/canoo")
 		fileUrl = url.replace("/", "$")
@@ -736,6 +838,7 @@ class canoo(internetInterface):
 			time.sleep(canoo.canooWait - (time.time() - self.lastCanooLoad))
 		
 		canoo.lastCanooLoad = time.time()
+		
 		page = pq(url)
 		
 		f = codecs.open(path + "/" + fileUrl, encoding="utf-8", mode="w")

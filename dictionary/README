@@ -3,3 +3,4 @@ To download the word list:
 1) Go to: http://ftp.tu-chemnitz.de/pub/Local/urz/ding/de-en/
 2) Choose whichever archive you want
 3) Once downloaded, remove all lines that start with "#" (the comment lines)
+4) From the root of the application, run: ./main -d dictionary/de-en.txt

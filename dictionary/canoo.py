@@ -16,6 +16,8 @@ def go():
 			LOCATE("...", `de`) = 0
 			AND
 			LOCATE('"', `de`) = 0
+			AND
+			LOCATE('/', `de`) = 0
 		GROUP BY `de`
 	"""
 	verbs = db.query(query)
@@ -25,13 +27,14 @@ def go():
 	for v in verbs:
 		print "Canoo (%d - %f): %s" % (i, time.time(), v["de"])
 		i += 1
-		tmp = word.word(v["de"])
+		tmp = word.word(v["de"].lower())
 		#force the verb to hit canoo
 		tmp.isVerb()
 	
 	#add to the searches table (with provider=canoo, success=0) for anything else
 	query = """
-		SELECT `de` FROM `translations`
+		INSERT IGNORE INTO `searches` (`search`, `source`, `success`)
+		SELECT `de`, "canoo", "0" FROM `translations`
 		WHERE
 			`pos`!="verb"
 			AND
@@ -40,17 +43,8 @@ def go():
 			LOCATE("...", `de`) = 0
 			AND
 			LOCATE('"', `de`) = 0
+			AND
+			LOCATE('/', `de`) = 0
 		GROUP BY `de`
 	"""
-	others = db.query(query)
-	
-	for o in others:
-		query = """
-			INSERT IGNORE INTO `searches`
-			SET
-				`search`=%s,
-				`source`="canoo",
-				`success`=0
-			;
-		"""
-		db.insert(query, (o["de"]))
+	db.insert(query)

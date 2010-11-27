@@ -368,8 +368,6 @@ class canoo(internetInterface):
 	helperSein = "sein"
 	helperWerden = "werden"
 	
-	count = 0
-	
 	def __init__(self, word):
 		super(canoo, self).__init__(word)
 		
@@ -380,8 +378,6 @@ class canoo(internetInterface):
 		if (word.find(" ") > 0):
 			self.word = word[word.rfind(" ") + 1:]
 			self.prefix = word[:word.rfind(" ") + 1]
-		
-		canoo.count += 1
 	
 	def exists(self):
 		self.__search()

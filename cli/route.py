@@ -11,9 +11,9 @@ class router:
 		if (opts.buildDict):
 			from dictionary import dictParser
 			dictParser.go(args)
-		elif (opts.killCanoo): #sorry canoo, don't know who else to hit :(
-			from dictionary import canoo
-			canoo.go()
+		elif (opts.loadVerbs):
+			from dictionary import woxikon
+			woxikon.go()
 		else:
 			from app import translator
 			import displayer
@@ -30,11 +30,6 @@ class router:
 		
 		parser = OptionParser()
 		
-		#parser.add_option("-e", "--extended-results",
-		#	action="callback", callback=translator.word.showExtended,
-		#	help="print out extended results (includes things like \"to\" and \"der/die/das\")"
-		#)
-		
 		parser.add_option("-w", "--word",
 			action="store", type="string", dest="word",
 			help="the word to translate (if not entered, will prompt)"
@@ -45,9 +40,9 @@ class router:
 			help="if the dictionary should be built"
 		)
 		
-		parser.add_option("-c", "--build-canoo",
-			action="store_true", default=False, dest="killCanoo",
-			help="if canoo should be hit to build verb forms"
+		parser.add_option("-b", "--build-verbs",
+			action="store_true", default=False, dest="loadVerbs",
+			help="if all the verb forms should be loaded"
 		)
 		
 		return parser.parse_args()

@@ -11,7 +11,8 @@ from mysql import mysql
 import translator
 import utf8
 
-import traceback
+
+useWoxikon = False
 
 class word(object):
 	"""Encapsulates a word to get all the information about it"""
@@ -60,9 +61,9 @@ class word(object):
 				return True #not much we can do, we don't have word locations, so just use what we got from canoo
 			
 			#check its location in the sentence
-			loc = self.loc / self.numWords #get a fraction of where we are
-			if ((config.getfloat("deutsch", "word.verbStart") / 100) < loc or
-				(1 - (config.getfloat("deutsch", "word.verbEnd") / 100)) > loc):
+			if (self.loc < config.getint("deutsch", "word.verbStart")
+				or
+				self.loc > (self.numWords - config.getint("deutsch", "word.verbEnd"))):
 					return True
 			
 		return False
@@ -536,7 +537,7 @@ class canoo(internetInterface):
 		wordArgs = (self.word, self.word, self.word, self.word, self.word, self.word, self.word, self.word)
 		
 		rows = self.db.query("""
-			SELECT * FROM `canooWords`
+			SELECT * FROM `verbs`
 			WHERE
 				`full`=%s
 				OR
@@ -561,7 +562,7 @@ class canoo(internetInterface):
 			#on the original verb we were given, just for safety (and to save time -- hitting canoo
 			#is INCREDIBLY expensive)
 			rows = self.db.query("""
-				SELECT * FROM `canooWords`
+				SELECT * FROM `verbs`
 				WHERE
 					`full`=%s
 					OR
@@ -583,8 +584,10 @@ class canoo(internetInterface):
 		
 		#but if we still haven't found anything...we must give up :(
 		if (type(rows) != tuple):
-			rows = self.__scrapeCanoo()
-			#rows = self.__scrapeWoxikon()
+			if (useWoxikon):
+				rows = self.__scrapeWoxikon()
+			else:
+				rows = self.__scrapeCanoo()
 		
 		if (len(rows) > 0):
 			#run through all the returned rows
@@ -682,7 +685,7 @@ class canoo(internetInterface):
 		if (hilfsverb not in ("haben", "sein")):
 			hilfsverb = "haben"
 		
-		return [dict(
+		ret = [dict(
 			full = self.removeParens(full),
 			hilfsverb = self.removeParens(hilfsverb),
 			stem = self.removeParens(stem),
@@ -693,6 +696,10 @@ class canoo(internetInterface):
 			subj2 = self.removeParens(subj2),
 			participle = self.removeParens(participle)
 		)]
+		
+		self.__stashResults(ret)
+		
+		return ret
 	
 	def removeParens(self, word):
 		if (word == None):
@@ -889,7 +896,7 @@ class canoo(internetInterface):
 			#we found some stuff, so save it to the db
 			for inflect in res:
 				self.db.insert("""
-					INSERT IGNORE INTO `canooWords`
+					INSERT IGNORE INTO `verbs`
 					SET
 						`full`=%s,
 						`stem`=%s,

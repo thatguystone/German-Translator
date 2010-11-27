@@ -5,6 +5,8 @@ import time
 
 def go():
 	db = mysql()
+	
+	word.useWoxikon = True
 
 	query = """
 		SELECT `de` FROM `translations`
@@ -25,7 +27,7 @@ def go():
 	#get a list of all the verbs that don't have adjectives / nouns in their forms
 	i = 0
 	for v in verbs:
-		print "Canoo (%d - %f): %s" % (i, time.time(), v["de"])
+		print "Woxikon (%d - %f): %s" % (i, time.time(), v["de"])
 		i += 1
 		tmp = word.word(v["de"].lower())
 		#force the verb to hit canoo

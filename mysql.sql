@@ -16,38 +16,6 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
--- Table structure for table `canooWords`
---
-
-DROP TABLE IF EXISTS `canooWords`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `canooWords` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `full` varchar(50) NOT NULL,
-  `stem` varchar(50) NOT NULL,
-  `preterite` varchar(50) NOT NULL,
-  `hilfsverb` enum('haben','sein') NOT NULL,
-  `perfect` varchar(50) NOT NULL,
-  `first` varchar(50) NOT NULL,
-  `third` varchar(50) NOT NULL,
-  `subj2` varchar(50) NOT NULL,
-  `participle` varchar(50) NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `full` (`full`,`hilfsverb`),
-  KEY `stem` (`stem`),
-  KEY `preterite` (`preterite`),
-  KEY `hilfsverb` (`hilfsverb`),
-  KEY `perfect` (`perfect`),
-  KEY `third` (`third`),
-  KEY `subj2` (`subj2`),
-  KEY `first` (`first`),
-  KEY `participle` (`participle`),
-  KEY `full_2` (`full`)
-) ENGINE=InnoDB AUTO_INCREMENT=7651 DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
 -- Table structure for table `searches`
 --
 
@@ -61,7 +29,7 @@ CREATE TABLE `searches` (
   `success` tinyint(1) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `search` (`search`,`source`,`success`)
-) ENGINE=InnoDB AUTO_INCREMENT=206496 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=204256 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -83,7 +51,39 @@ CREATE TABLE `translations` (
   KEY `de` (`de`),
   KEY `en_de` (`en`,`de`),
   KEY `en` (`en`)
-) ENGINE=InnoDB AUTO_INCREMENT=391272 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=393670 DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `verbs`
+--
+
+DROP TABLE IF EXISTS `verbs`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `verbs` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `full` varchar(50) NOT NULL,
+  `stem` varchar(50) NOT NULL,
+  `preterite` varchar(50) NOT NULL,
+  `hilfsverb` enum('haben','sein') NOT NULL,
+  `perfect` varchar(50) NOT NULL,
+  `first` varchar(50) NOT NULL,
+  `third` varchar(50) NOT NULL,
+  `subj2` varchar(50) NOT NULL,
+  `participle` varchar(50) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `full` (`full`,`hilfsverb`),
+  KEY `stem` (`stem`),
+  KEY `preterite` (`preterite`),
+  KEY `hilfsverb` (`hilfsverb`),
+  KEY `perfect` (`perfect`),
+  KEY `third` (`third`),
+  KEY `subj2` (`subj2`),
+  KEY `first` (`first`),
+  KEY `participle` (`participle`),
+  KEY `full_2` (`full`)
+) ENGINE=InnoDB AUTO_INCREMENT=7646 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
@@ -95,4 +95,4 @@ CREATE TABLE `translations` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2010-11-27 15:54:24
+-- Dump completed on 2010-11-27 18:56:21

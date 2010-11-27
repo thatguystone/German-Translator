@@ -56,6 +56,8 @@ class wordContainer(object):
 		word = re.sub(r'(\(.*\))', "", word)
 		word = re.sub(r'(\[.*\])', "", word)
 		word = re.sub(r'(\{.*\})', "", word)
+		word = re.sub(r'(\\.*\\)', "", word)
+		word = re.sub(r'(\/.*\/)', "", word)
 		
 		word = word.replace("\"", "").replace("\'", "").strip()
 		
@@ -66,9 +68,12 @@ class wordContainer(object):
 		#easier to do this than remove words from the list
 		newWord = []
 		
-		for w in words:
-			if (len(w.strip()) > 0 and not w in wordContainer.cleanupWords):
-				newWord.append(w)
+		if (len(words) == 1):
+			newWord.append(words[0])
+		else:
+			for w in words:
+				if (len(w.strip()) > 0 and not w in wordContainer.cleanupWords):
+					newWord.append(w)
 			
 		word = " ".join(newWord)
 		

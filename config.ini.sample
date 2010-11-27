@@ -1,15 +1,14 @@
 [deutsch]
-database.host = warehouse.cims.nyu.edu
-database.user = abs407
-database.pass = n9drxmfr
-database.db = abs407_deutsch
+database.host = localhost
+database.user = root
+database.pass = password
+database.db = deutsch
 
-; the following values are what PERCENT of the sentence the verb
-; can exist in and still qualify as a verb
-word.verbStart = 10 ; the word is only a verb in the FIRST 10% of the sentence
-word.verbEnd   = 10 ; the word is only a verb in the LAST 10% of the sentence
+; How many words from the start / end of a setence a verb is allowed to be.
+word.verbStart = 4
+word.verbEnd   = 4
 
 ; for debugging purposes on the command line
-debug = False
+debug = True
 
-isCims = True
+isCims = False

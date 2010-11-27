@@ -593,7 +593,9 @@ class verbNode(object):
 		a quick way to set the tense.
 		"""
 		
-		if (stem == form["subj2"]):
+		if (stem == form["subj2"] and stem == form["preterite"]):
+			self.setTense(tenses.CONDITIONAL_PAST + " OR " + tenses.PRETERITE)
+		elif (stem == form["subj2"]):
 			self.setTense(tenses.CONDITIONAL_PAST)
 		elif (stem in (form["first"], form["third"], form["stem"])):
 			self.setTense(tenses.PRESENT)

@@ -80,6 +80,7 @@ class clauseFigurer(object):
 			#attempt to see if when we add the prefix to the verb, it is still a verb
 			prefixed = word.word(lastWord.word + possibleVerbs[0].word, possibleVerbs[0].loc, possibleVerbs[0].numWords)
 			if (prefixed.isVerb()):
+				tmpVerbs.remove(possibleVerbs[0])
 				possibleVerbs[0] = prefixed #it's a separable verb, so replace it
 		
 		#pass it onto the tree constructor to build out our verb tree

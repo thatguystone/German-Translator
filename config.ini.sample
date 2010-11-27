@@ -9,4 +9,7 @@ database.db = abs407_deutsch
 word.verbStart = 10 ; the word is only a verb in the FIRST 10% of the sentence
 word.verbEnd   = 10 ; the word is only a verb in the LAST 10% of the sentence
 
+; for debugging purposes on the command line
+debug = False
+
 isCims = True

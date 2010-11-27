@@ -96,7 +96,8 @@ class clauseFigurer(object):
 		tree.translate(translate = True)
 
 		#debugging dump of the tenses and nodes
-		tree.dump()
+		if (config.getboolean("deutsch", "debug")):
+			tree.dump()
 		
 		#grab all the used verbs
 		verbs = tmpVerbs[:]
@@ -367,7 +368,7 @@ class verbNode(object):
 		
 		#go through all possible combinations
 		for f in forms:
-			if (len(f[0].translations.searchFromDB()) != bool):
+			if (type(f[0].translations.searchFromDB()) != bool):
 				#store the conjugation and defineable forms
 				self.verb = f[0]
 				self.conjugation = f[1]

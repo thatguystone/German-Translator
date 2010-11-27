@@ -83,8 +83,9 @@ class word(object):
 		]
 	
 	def __isA(self, pos):
-		words = self.translations.get()
-		if (len(words) == 0):
+		#only check out database -- no need to do anything too crazy here...if we fail, no biggie
+		words = self.translations.searchFromDB()
+		if (type(words) == bool):
 			return False
 		
 		return bool(len([w for w in words if w["pos"] == pos]) > 0)
@@ -442,7 +443,7 @@ class canoo(internetInterface):
 			forms = self.get(True)
 		
 		if (len(forms) == 0):
-				return (None, ())
+			return (None, ())
 		
 		form = forms[0]
 		
@@ -527,6 +528,13 @@ class canoo(internetInterface):
 		#that things will not be sped up if I move my search cache checker here -- verbs
 		#come in all forms, and the chances that we did a search on the exact form we have are
 		#1:6....so let's just risk it
+		
+		#if we have a participle, then let's cheat: change our stem to the stem or the participle
+		#so that we're never tempted to hit the internet (unless we genuinely don't have the verb
+		#in the DB)
+		if (self.isParticiple()):
+			stem, tmpForm = self.getParticipleStem()
+			stem = self.getStem(stem)
 		
 		stemArgs = (self.word, stem, stem, stem, stem, stem, stem, stem)
 		wordArgs = (self.word, self.word, self.word, self.word, self.word, self.word, self.word, self.word)

@@ -61,7 +61,7 @@ CREATE TABLE `searches` (
   `success` tinyint(1) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `search` (`search`,`source`,`success`)
-) ENGINE=InnoDB AUTO_INCREMENT=206487 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=206495 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -95,4 +95,4 @@ CREATE TABLE `translations` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2010-11-27 14:43:26
+-- Dump completed on 2010-11-27 15:07:46

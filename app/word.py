@@ -137,14 +137,7 @@ class cache(internetInterface):
 		self.searchRan = True
 		
 		#well, if we get here, then we know that we have some words stored
-		words = self.db.query("""
-			SELECT * FROM `translations`
-			WHERE
-				`en`=%s
-				OR
-				`de`=%s
-			;
-		""", (self.word, self.word))
+		words = self.searchFromDB()
 		
 		#if we didn't find any words in our translations table
 		if (type(words) == bool):
@@ -170,6 +163,16 @@ class cache(internetInterface):
 		
 		#we found some words -- add them to our list
 		self.__storeWords(words)
+	
+	def searchFromDB(self):
+		return self.db.query("""
+			SELECT * FROM `translations`
+			WHERE
+				`en`=%s
+				OR
+				`de`=%s
+			;
+		""", (self.word, self.word))
 	
 	def __storeWords(self, words):
 		"""
@@ -364,6 +367,8 @@ class canoo(internetInterface):
 	helperSein = "sein"
 	helperWerden = "werden"
 	
+	count = 0
+	
 	def __init__(self, word):
 		super(canoo, self).__init__(word)
 		
@@ -374,6 +379,8 @@ class canoo(internetInterface):
 		if (word.find(" ") > 0):
 			self.word = word[word.rfind(" ") + 1:]
 			self.prefix = word[:word.rfind(" ") + 1]
+		
+		canoo.count += 1
 	
 	def exists(self):
 		self.__search()
@@ -426,9 +433,16 @@ class canoo(internetInterface):
 				w = w[:len(w) - len(end)]
 				break
 		
-		forms = word(w).verb.get(True)
+		#only hit the DB if we have a different word after cleaning
+		#otherwise, use our cached stuff
+		tmpWord = word(w)
+		if (w != self.word and w != tmpWord.verb.getStem()):
+			forms = tmpWord.verb.get(True)
+		else:
+			forms = self.get(True)
+		
 		if (len(forms) == 0):
-			return (None, ())
+				return (None, ())
 		
 		form = forms[0]
 		
@@ -567,7 +581,6 @@ class canoo(internetInterface):
 		if (type(rows) != tuple):
 			rows = self.__scrapeCanoo()
 			#rows = self.__scrapeWoxikon()
-			self.__stashResults(rows)
 		
 		if (len(rows) > 0):
 			#run through all the returned rows
@@ -732,6 +745,8 @@ class canoo(internetInterface):
 			#append all the information from all the pages we found in the search
 			for a in links:
 				ret.append(self.__scrapePage(a))
+		
+		self.__stashResults(ret)
 		
 		return ret
 			

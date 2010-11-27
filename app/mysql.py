@@ -23,7 +23,7 @@ class mysql(object):
 			charset = "utf8",
 			use_unicode = True
 		)
-
+		
 		#since we're going to be using special characters, go directly to UTF-8
 		self.__db.set_character_set('utf8')
 		self.query('SET NAMES utf8;')

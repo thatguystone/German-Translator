@@ -176,7 +176,6 @@ def go(args):
 		t.setup(sema)
 		t.start()
 	
-	
 def getLine(sema):
 	sema.acquire()
 	line = utf8.encode(dic.readline().strip())

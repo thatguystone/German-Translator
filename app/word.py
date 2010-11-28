@@ -11,9 +11,6 @@ from mysql import mysql
 import translator
 import utf8
 
-
-useWoxikon = False
-
 class word(object):
 	"""Encapsulates a word to get all the information about it"""
 	
@@ -584,10 +581,8 @@ class canoo(internetInterface):
 		
 		#but if we still haven't found anything...we must give up :(
 		if (type(rows) != tuple):
-			if (useWoxikon):
-				rows = self.__scrapeWoxikon()
-			else:
-				rows = self.__scrapeCanoo()
+			rows = self.__scrapeCanoo()
+			self.__stashResults(rows)
 		
 		if (len(rows) > 0):
 			#run through all the returned rows
@@ -610,26 +605,7 @@ class canoo(internetInterface):
 				#save the word to our helper verb table
 				self.words[r["hilfsverb"]].append(tmp)
 	
-	def __scrapeWoxikon(self):
-		if (self.hitInternet):
-			return []
-		
-		self.hitInternet = True
-		
-		#first, check to see if we've failed on this search before
-		failed = self.db.query("""
-			SELECT 1 FROM `searches`
-			WHERE
-				`search`=%s
-				AND
-				`source`="canoo"
-				AND
-				`success`=0
-		""", (self.word))
-		
-		if (failed):
-			return []
-		
+	def scrapeWoxikon(self):
 		urlWord = self.word
 		for r in ((u"ß", "%C3%9F"), (u"ä", "%C3%A4"), (u"ü", "%C3%BC"), (u"ö", "%C3%B6")):
 			urlWord = urlWord.replace(r[0], r[1])
@@ -651,7 +627,8 @@ class canoo(internetInterface):
 			f.close()
 			
 		if (page.find("title").eq(0).text() == "Keine Ergebnisse"):
-			return []
+			self.__stashResults([])
+			return
 		
 		#the first is our verb info table
 		info = page.find("#index").find("table.verbFormsTable").eq(0).find("tr")
@@ -667,12 +644,14 @@ class canoo(internetInterface):
 		stem = self.getStem(full)
 		
 		if (tbl.eq(1).find("td").eq(0).text() == None):
-			return []
+			self.__stashResults([])
+			return
 		
 		first = self.getStem(prefix + tbl.eq(1).find("td").eq(0).text().split(" ")[0])
 		
 		if (first == prefix + "-"):
-			return []
+			self.__stashResults([])
+			return
 		
 		third = self.getStem(prefix + tbl.eq(1).find("td").eq(2).text().split(" ")[0])
 		preterite = self.getStem(prefix + tbl.eq(2).find("td").eq(0).text().split(" ")[0])
@@ -685,7 +664,7 @@ class canoo(internetInterface):
 		if (hilfsverb not in ("haben", "sein")):
 			hilfsverb = "haben"
 		
-		ret = [dict(
+		self.__stashResults([dict(
 			full = self.removeParens(full),
 			hilfsverb = self.removeParens(hilfsverb),
 			stem = self.removeParens(stem),
@@ -695,11 +674,7 @@ class canoo(internetInterface):
 			third = self.removeParens(third),
 			subj2 = self.removeParens(subj2),
 			participle = self.removeParens(participle)
-		)]
-		
-		self.__stashResults(ret)
-		
-		return ret
+		)])
 	
 	def removeParens(self, word):
 		if (word == None):
@@ -756,8 +731,6 @@ class canoo(internetInterface):
 			#append all the information from all the pages we found in the search
 			for a in links:
 				ret.append(self.__scrapePage(a))
-		
-		self.__stashResults(ret)
 		
 		return ret
 			

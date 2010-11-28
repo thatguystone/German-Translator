@@ -5,8 +5,6 @@ import time
 
 def go():
 	db = mysql()
-	
-	word.useWoxikon = True
 
 	query = """
 		SELECT `de` FROM `translations`
@@ -30,9 +28,8 @@ def go():
 		print "Woxikon (%d - %f): %s" % (i, time.time(), v["de"])
 		i += 1
 		tmp = word.word(v["de"].lower())
-		#force the verb to hit canoo
-		tmp.isVerb()
-	
+		tmp.verb.scrapeWoxikon()
+
 	#add to the searches table (with provider=canoo, success=0) for anything else
 	query = """
 		INSERT IGNORE INTO `searches` (`search`, `source`, `success`)

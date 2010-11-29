@@ -15,6 +15,17 @@ $(function() {
 		return false;
 	});
 	
+	$('#bookmarkletQuestion').qtip({
+		content: "When you're on a German site and wish you had some verb \
+			translations handy, this is what you want.<br><br>Simply drag the \
+			bookmarklet to the left to your bookmarks toolbar, and whenever you're \
+			on a German website, click the bookmarklet to activate the translator; then \
+			all you have to do it highlight text, and you'll get instant translations.<br><br> \
+			Click the link for an example of how to create the bookmarklet.",
+		style: 'light'
+	});
+
+	
 	//get the query from the url
 	query = document.location.pathname.substring(1);
 	

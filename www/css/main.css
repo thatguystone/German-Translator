@@ -58,7 +58,30 @@ body {
 			.content .translations table tr:last-child td[colspan] {
 				text-align: center;
 			}
+	
+	.content .bookmarklet {
+		margin-top: 25px;
+		text-align: center;
+	}
+		.content .bookmarklet .button {
+			-moz-border-radius: 6px;
+			-moz-box-shadow: 3px 2px 2px 0 rgba(0, 0, 0, 0.35);
+			text-decoration: none;
+			background-color: #DDDDDD;
+			color: #222222;
+			cursor: move;
+			font-size: 12px;
+			font-variant: small-caps;
+			padding: 6px;
+			text-align: center;
+			width: 200px;
+		}
 		
+		.content .bookmarklet .question {
+			text-decoration: none;
+			margin-left: 5px;
+		}
+	
 	.content .copyright {
 		margin-top: 50px;
 		color: #909090;

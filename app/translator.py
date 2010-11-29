@@ -40,9 +40,9 @@ class sentenceFigurer(object):
 	def translate(self):
 		"""Assumes we can translate it, then runs a sentence guesser on it"""
 		
-		query = re.sub(r"[\(\)\-\&\$\%\#\@\[\]\{\}\+\=]*", "", self.query)
+		query = re.sub("[\(\)\-\&\$\%\#\@\[\]\{\}\+\=\"\']*", "", self.query)
 		
-		tmpClauses = [r.strip() for r in re.split("[,\.\?\!\"\']*", query) if len(r) > 0]
+		tmpClauses = [r.strip() for r in re.split("[,\.\?\!]*", query) if len(r) > 0]
 		
 		#do a pass over the sentence to count words and stuff and stuff
 		words = []

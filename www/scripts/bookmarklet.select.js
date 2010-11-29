@@ -1,5 +1,5 @@
 var colors = [
-	"FFCBAD", "FFD876", "D8E9BF", "C5D6CC", "D7BBD9", "B9FCC1", "C5FFFD"
+	"FFCBAD", "FFD876", "D8E9BF", "C5D6CC", "D7BBD9", "B9FCC1"
 ];
 
 function verbinatorBookmarkletInit() {
@@ -40,7 +40,7 @@ function translate(text) {
 	if (text.toString().length == 0)
 		return;
 	
-	text = text.toString()
+	text = text.toString().trim();
 	
 	$("#translationBox").addClass("loading").find(".container").hide().end().show();
 	$("#translations").empty();

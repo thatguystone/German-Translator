@@ -129,7 +129,7 @@ class word(object):
 	def __isA(self, pos):
 		#only check out database -- no need to do anything too crazy here...if we fail, no biggie
 		words = self.translations.searchFromDB()
-		if (type(words) == bool):
+		if (len(words) == 0):
 			return False
 		
 		return bool(len([w for w in words if w["pos"] == pos]) > 0)

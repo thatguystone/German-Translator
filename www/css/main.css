@@ -1,5 +1,7 @@
 body {
 	background: url(/images/bg.png);
+	font-size: 14px;
+	font-family: Sans-serif;
 }
 
 .content {
@@ -29,6 +31,7 @@ body {
 	}
 	
 	.content .translations {
+		font-size: 12px;
 	}
 	.content .translations.loading {
 		background: url(/images/loading.gif) no-repeat center;
@@ -65,7 +68,10 @@ body {
 	}
 		.content .bookmarklet .button {
 			-moz-border-radius: 6px;
+			border-radius: 6px;
 			-moz-box-shadow: 3px 2px 2px 0 rgba(0, 0, 0, 0.35);
+			box-shadow: 3px 2px 2px 0 rgba(0, 0, 0, 0.35);
+			-webkit-box-shadow: 3px 2px 2px 0 rgba(0, 0, 0, 0.35);
 			text-decoration: none;
 			background-color: #DDDDDD;
 			color: #222222;
@@ -80,6 +86,7 @@ body {
 		.content .bookmarklet .question {
 			text-decoration: none;
 			margin-left: 5px;
+			font-size: 12px;
 		}
 	
 	.content .copyright {

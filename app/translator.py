@@ -70,6 +70,9 @@ class clauseFigurer(object):
 		#run for all the possible verbs (participles could be included in this list)
 		tmpVerbs = [v for v in words if v.isVerb()]
 		
+		if (len(tmpVerbs) == 0):
+			return []
+		
 		#all the possible verbs in the sentence
 		possibleVerbs = [v for v in tmpVerbs if not v.verb.isPresentParticiple()]
 		
@@ -132,7 +135,7 @@ class clauseFigurer(object):
 		#add our participles to our meanings
 		for p in participles:
 			presentParticiple = p.verb.isPresentParticiple()
-			forms = p.verb.get(True)
+			forms = p.verb.get(unknownHelper = True)
 			
 			#save the full form of our word for the translation
 			origWord = p.verb.word
@@ -145,9 +148,8 @@ class clauseFigurer(object):
 				p = word.word(p.verb.getParticipleStem()[0], p.sentLoc, p.clauseLoc, p.numWords)
 				forms = p.verb.get(True)
 				
-			
 			fullForm = forms[0]["full"]
-			loc = p.loc
+			loc = p.sentLoc
 			
 			#fix for python 2.4
 			tense = "past"
@@ -195,7 +197,7 @@ class verbTree(object):
 			
 			verb = i
 			break
-	
+		
 		#let's determine if we're in a nebensatz
 		#if the verb we found is in the middle of the collection of verbs at the end of the sentence
 		#or at the start of it, then we're looking at a nebensatz
@@ -419,7 +421,7 @@ class verbNode(object):
 	
 	def __standAlone(self):
 		#looks like we're just a verb by our lonesome in a big, bad sentence :(
-		form = self.conjugation.verb.get(True)[0]
+		form = self.conjugation.verb.get(True)
 		stem = self.conjugation.verb.getStem()
 		self.__setNormalTenses(form, stem)
 	
@@ -561,17 +563,23 @@ class verbNode(object):
 			
 			#two loops...otherwise things get far too indented and painful
 			for v in verbs:
+				used = False
+				
 				#process the translation into its proper output form
 				if (helperConj in (helper["third"], helper["first"], helper["stem"])):
 					self.setTense(tenses.PAST_PERFECT)
+					used = True
 				elif (helperConj == helper["subj2"]):
 					self.setTense(tenses.CONDITIONAL_PAST)
+					used = True
 				elif (helperConj == helper["preterite"]):
 					self.setTense(tenses.PLUSQUAM)
+					used = True
 				
 				#and set the translations with the full form of our word
 				#it can grab from our node the conjugated values, &etc.
-				self.__doTranslations(v.word)
+				if (used):
+					self.__doTranslations(v.word)
 		
 		#this is a special-case tense -> the combination of a helper and a modal...owwies
 		elif (helper["stem"] == "werd"
@@ -587,36 +595,50 @@ class verbNode(object):
 			
 			#all the possible verbs (ex: gedenken + denken for gedacht)
 			for v in self.conjugation.verb.get(helper["full"]):
+				used = False
 				#if we're looking at an unconjugated form of the verb: sehen
 				if (conjugatedStem == v["stem"]):
 					if (helperConj == helper["subj2"]):
 						self.setTense(tenses.CONDITIONAL)
+						used = True
 					elif (helperConj in (helper["third"], helper["first"], helper["stem"])):
 						self.setTense(tenses.FUTURE)
+						used = True
 				elif (conjugatedStem == v["perfect"]):
 					if (helperConj == helper["preterite"]):
 						self.setTense(tenses.PASSIVE_PAST)
+						used = True
 					elif (helperConj in (helper["third"], helper["first"], helper["stem"])):
 						self.setTense(tenses.PASSIVE_PRESENT)
+						used = True
 				
-				self.__doTranslations(v["full"])
+				if (used):
+					self.__doTranslations(v["full"])
 	
-	def __setNormalTenses(self, form, stem):
+	def __setNormalTenses(self, forms, stem):
 		"""
 		When there aren't any special cases, and the verb follows the tense forms exactly, this is
 		a quick way to set the tense.
 		"""
 		
-		if (stem == form["subj2"] and stem == form["preterite"]):
-			self.setTense(tenses.CONDITIONAL_PAST + " OR " + tenses.PRETERITE)
-		elif (stem == form["subj2"]):
-			self.setTense(tenses.CONDITIONAL_PAST)
-		elif (stem in (form["first"], form["third"], form["stem"])):
-			self.setTense(tenses.PRESENT)
-		elif (stem == form["preterite"]):
-			self.setTense(tenses.PRETERITE)
-		
-		self.__doTranslations(form["full"])
+		for form in forms:
+			used = False
+			
+			if (stem == form["subj2"] and stem == form["preterite"]):
+				self.setTense(tenses.CONDITIONAL_PAST + " OR " + tenses.PRETERITE)
+				used = True
+			elif (stem == form["subj2"]):
+				self.setTense(tenses.CONDITIONAL_PAST)
+				used = True
+			elif (stem in (form["first"], form["third"], form["stem"])):
+				self.setTense(tenses.PRESENT)
+				used = True
+			elif (stem == form["preterite"]):
+				self.setTense(tenses.PRETERITE)
+				used = True
+			
+			if (used):
+				self.__doTranslations(form["full"])
 	
 	def __doTranslations(self, fullForm):
 		if (not verbNode.doTranslations):
@@ -653,12 +675,15 @@ class verbNode(object):
 			fullForm = self.verb.word
 			
 		for t in translations:
-			self.meanings.append(dict({
+			d = dict({
 				"en": "(" + self.tense + ") " + t["en"],
 				"de": fullForm,
 				"deOrig": origWord,
 				"deWordLocation": self.verb.sentLoc
-			}))
+			})
+			
+			if (d not in self.meanings):
+				self.meanings.append(d)
 	
 	def dump(self):
 		#arg, python2.4!

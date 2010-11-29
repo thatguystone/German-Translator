@@ -1,5 +1,5 @@
 var colors = [
-	"FFCBAD", "FFF9B6", "D8E9BF", "C5D6CC", "D7BBD9", "B9FCC1" 
+	"FFCBAD", "FFD876", "D8E9BF", "C5D6CC", "D7BBD9", "B9FCC1", "C5FFFD"
 ];
 
 function verbinatorBookmarkletInit() {
@@ -61,6 +61,7 @@ function translate(text) {
 				
 			if (data.length == 0) {
 				$table.append('<tr><td colspan="2">No translations found.</td></tr>');
+				$("#highlightedText").text("No translations found.");
 			} else {
 				//make the translations print out in sentence order
 				data.sort(dataSorter);
@@ -77,7 +78,11 @@ function translate(text) {
 						highlighted[currentWord] = "<span " + style + ">" + highlighted[currentWord] + "</span>";
 					}
 					
-					$table.append("<tr " + style + "><td>" + v.en + "</td><td>" + v.de + " (" + v.deOrig + ")</td></tr>");
+					orig = ""
+					if (typeof v.deOrig != "undefined")
+						orig = "(" + v.deOrig + ")";
+					
+					$table.append("<tr " + style + "><td>" + v.en + "</td><td>" + v.de + " " + orig + "</td></tr>");
 				});
 				
 				$("#highlightedText").html(highlighted.join(" "));

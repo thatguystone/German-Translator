@@ -11,6 +11,8 @@ from mysql import mysql
 import translator
 import utf8
 
+import traceback
+
 class word(object):
 	"""Encapsulates a word to get all the information about it"""
 	
@@ -32,25 +34,71 @@ class word(object):
 	def get(self, pos = "all"):
 		#if we have a verb, then add the root translations to the mix
 		#do this on demand -- we only need this information if we're getting translations
-		if (self.isVerb()):
+		if (self.isVerb() or self.verb.isParticiple()):
 			full = self.verb.get(unknownHelper = True)[0]["full"]
 			if (full != self.word):
 				self.translations.addTranslations(cache(full))
 		
 		return self.translations.get(pos)
 	
-	def isAdjAdv(self):
-		return self.__isA("adjadv")
+	def isAdj(self):
+		"""
+		Only returns True if the adj had an ending on it.
+		"""
+		
+		#lose the adj ending
+		w = self.word
+		for e in ("es", "en", "er", "em", "e"):
+			if (w[len(w) - len(e):] == e): #remove the end, but only once (thus, rstrip doesn't work)
+				w = w[:len(w) - len(e)]
+				break
+				
+		#if there was no ending...just check our list
+		if (w != self.word):
+			return word(w).isAdj()
+		
+		return False			
 	
 	def isNoun(self):
-		return self.word.isdigit() or self.__isA("noun")
-	
+		if (self.word.isdigit()):
+			return True
+		
+		isN = self.__isA("noun")
+		
+		if (isN):
+			return True
+		
+		#maybe we have a plural?
+		w = self.word
+		for r in ("e", "en", "n", "er", "nen", "se"):
+			if (w[len(w) - len(r):] == r): #remove the end, but only once (thus, rstrip doesn't work)
+				w = w[:len(w) - len(r)]
+				break
+		
+		if (w != self.word and word(w).isNoun()):
+			return True
+		
+		#do an umlaut replace on w -- only the first umlaut becomes normal
+		umlauts = (u"ü", u"ä", u"ö")
+		for l, i in zip(w, range(0, len(w))):
+			if (l in umlauts):
+				w = w[:i] + l.replace(u"ü", "u").replace(u"ä", "a").replace(u"ö", "o") + w[i + 1:]
+				break
+		
+		if (w != self.word and word(w).isNoun()):
+			return True
+		
+		return False
+			
 	def isVerb(self):
 		#check to see if we are captalized -> nice indication we're not a verb
-		if ((self.isNoun() or self.isAdjAdv()) and self.word[0] >= 'A' and self.word[0] <= 'Z'):
+		if (self.isNoun() and (self.word[0] >= 'A' and self.word[0] <= 'Z')):
 			#make sure we're not at the beginning of a sentence -- that would be embarassing
 			if (self.clauseLoc != 0):
 				return False
+		
+		if (self.isAdj()):
+			return False
 		
 		#if we exist, then check our location in the sentence to see the likelihood of being
 		#a verb
@@ -112,6 +160,10 @@ class cache(internetInterface):
 	it will attempt to look it up.
 	"""
 	
+	def __init__(self, word):
+		super(cache, self).__init__(word)
+		self.dbCache = None
+	
 	def get(self, pos = "all"):
 		self.__search()
 		
@@ -164,15 +216,43 @@ class cache(internetInterface):
 		#we found some words -- add them to our list
 		self.__storeWords(words)
 	
-	def searchFromDB(self):
-		return self.db.query("""
+	def __searchFromDB_query(self, ret, arg):
+		sql = """
 			SELECT * FROM `translations`
 			WHERE
 				`en`=%s
 				OR
 				`de`=%s
 			;
-		""", (self.word, self.word))
+		"""
+		
+		rows = self.db.query(sql, (arg, ) * 2)
+		if (type(rows) != bool):
+			#there's a pretty horrific bug in MySQL that doesn't seem to be getting resolved
+			#any time soon -- ß = s, which is just....false...lslajsdfkjaskldfjask;ldfjsa;ldfjas;dklf
+			#bug: http://bugs.mysql.com/bug.php?id=27877
+			#this is a horrible work around :(
+			for r in rows:
+				if (r["de"] == arg):
+					ret.append(r)
+	
+	def searchFromDB(self):
+		if (self.dbCache != None):
+			return self.dbCache
+		
+		ret = []
+		
+		self.__searchFromDB_query(ret, self.word)
+		
+		if (self.word.find(u"ß") > -1):
+			self.__searchFromDB_query(ret, self.word.replace(u"ß", "ss"))
+		
+		if (self.word.find("ss") > -1):
+			self.__searchFromDB_query(ret, self.word.replace("ss", u"ß"))
+		
+		self.dbCache = ret
+		
+		return ret
 	
 	def __storeWords(self, words):
 		"""
@@ -505,6 +585,46 @@ class canoo(internetInterface):
 		
 		return self.words[self.helper]
 	
+	def __searchDB(self, word):
+		ret = []
+		
+		self.__searchDB_query(ret, word)
+		
+		if (self.word.find(u"ß") > -1):
+			self.__searchDB_query(ret, word, u"ß", "ss")
+		
+		if (self.word.find(u"ss") > -1):
+			self.__searchDB_query(ret, word, "ss", u"ß")
+		
+		return ret
+	
+	def __searchDB_query(self, ret, arg, find = None, replace = None):
+		if (find != None and replace != None):
+			arg = arg.replace(find, replace)
+		
+		rows = self.db.query("""
+			SELECT * FROM `verbs`
+			WHERE
+				`full`=%s
+				OR
+				`stem`=%s
+				OR
+				`preterite`=%s
+				OR
+				`perfect`=%s
+				OR
+				`first`=%s
+				OR
+				`third`=%s
+				OR
+				`subj2`=%s
+				OR
+				`participle`=%s
+			;
+		""", (self.word, ) + (arg, ) * 7)
+		if (type(rows) != bool):
+			ret += rows
+	
 	def __search(self):
 		"""
 		Attempts to get the information from the database.  If it fails, then it hits the internet as
@@ -529,59 +649,18 @@ class canoo(internetInterface):
 		#in the DB)
 		if (self.isParticiple()):
 			stem, tmpForm = self.getParticipleStem()
-			stem = self.getStem(stem)
+			#stem = self.getStem(stem)
 		
-		stemArgs = (self.word, stem, stem, stem, stem, stem, stem, stem)
-		wordArgs = (self.word, self.word, self.word, self.word, self.word, self.word, self.word, self.word)
+		rows = self.__searchDB(stem)
 		
-		rows = self.db.query("""
-			SELECT * FROM `verbs`
-			WHERE
-				`full`=%s
-				OR
-				`stem`=%s
-				OR
-				`preterite`=%s
-				OR
-				`perfect`=%s
-				OR
-				`first`=%s
-				OR
-				`third`=%s
-				OR
-				`subj2`=%s
-				OR
-				`participle`=%s
-			;
-		""", stemArgs)
-		
-		if (type(rows) != tuple and stemArgs != wordArgs):
+		if (len(rows) == 0 and stem != self.word):
 			#it's entirely possible that we're removing verb endings too aggressively, so make a pass
 			#on the original verb we were given, just for safety (and to save time -- hitting canoo
 			#is INCREDIBLY expensive)
-			rows = self.db.query("""
-				SELECT * FROM `verbs`
-				WHERE
-					`full`=%s
-					OR
-					`stem`=%s
-					OR
-					`preterite`=%s
-					OR
-					`perfect`=%s
-					OR
-					`first`=%s
-					OR
-					`third`=%s
-					OR
-					`subj2`=%s
-					OR
-					`participle`=%s
-				;
-			""", wordArgs)
+			rows = self.__searchDB(self.word)
 		
 		#but if we still haven't found anything...we must give up :(
-		if (type(rows) != tuple):
+		if (len(rows) == 0):
 			rows = self.__scrapeCanoo()
 			self.__stashResults(rows)
 		
@@ -605,7 +684,7 @@ class canoo(internetInterface):
 				
 				#save the word to our helper verb table
 				self.words[r["hilfsverb"]].append(tmp)
-	
+				
 	def scrapeWoxikon(self):
 		urlWord = self.word
 		for r in ((u"ß", "%C3%9F"), (u"ä", "%C3%A4"), (u"ü", "%C3%BC"), (u"ö", "%C3%B6")):
@@ -849,48 +928,65 @@ class canoo(internetInterface):
 	def __stashResults(self, res):
 		if (len(res) == 0):
 			#nothing was found, record a failed search so we don't do it again
-			self.db.insert("""
-				INSERT IGNORE INTO `searches`
-				SET
-					`search`=%s,
-					`source`="canoo",
-					`success`=0
-				;
-			""", (self.word))
+			self.__stashSearch(self.word, 0)
 		else:
-			self.db.insert("""
-				INSERT IGNORE INTO `searches`
-				SET
-					`search`=%s,
-					`source`="canoo",
-					`success`=1
-				;
-			""", (self.word))
+			self.__stashSearch(self.word, 1)
 			
 			#we found some stuff, so save it to the db
 			for inflect in res:
-				self.db.insert("""
-					INSERT IGNORE INTO `verbs`
-					SET
-						`full`=%s,
-						`stem`=%s,
-						`preterite`=%s,
-						`hilfsverb`=%s,
-						`perfect`=%s,
-						`first`=%s,
-						`third`=%s,
-						`subj2`=%s,
-						`participle`=%s
-					;
-				""", (
-					inflect["full"],
-					inflect["stem"],
-					inflect["preterite"],
-					inflect["hilfsverb"],
-					inflect["perfect"],
-					inflect["first"],
-					inflect["third"],
-					inflect["subj2"],
-					inflect["participle"]
-					)
-				)
+				#store every combination of "ß" and "ss" -> so that old german spellings work
+				self.__stashInsert(inflect)
+				self.__stashInsert(inflect, u"ß", "ss")
+				self.__stashInsert(inflect, "ss", u"ß")
+				
+				if (inflect["full"].find(u"ß") > -1):
+					self.__stashSearch(inflect["full"].replace(u"ß", "ss"), 1)
+				
+				if (inflect["full"].find("ss") > -1):
+					self.__stashSearch(inflect["full"].replace("ss", u"ß"), 1)
+	
+	def __stashSearch(self, search, success):
+		self.db.insert("""
+			INSERT IGNORE INTO `searches`
+			SET
+				`search`=%s,
+				`source`="canoo",
+				`success`=%s
+			;
+		""", (search, success))
+	
+	def __stashInsert(self, inflect, find = None, replace = None):
+		if (find != None and replace != None):
+			tmp = dict()
+			for k, v in inflect.iteritems():
+				tmp[k] = v.replace(find, replace)
+			
+			tmp["full"] = inflect["full"]
+			
+			inflect = tmp
+		
+		self.db.insert("""
+			INSERT IGNORE INTO `verbs`
+			SET
+				`full`=%s,
+				`stem`=%s,
+				`preterite`=%s,
+				`hilfsverb`=%s,
+				`perfect`=%s,
+				`first`=%s,
+				`third`=%s,
+				`subj2`=%s,
+				`participle`=%s
+			;
+		""", (
+			inflect["full"],
+			inflect["stem"],
+			inflect["preterite"],
+			inflect["hilfsverb"],
+			inflect["perfect"],
+			inflect["first"],
+			inflect["third"],
+			inflect["subj2"],
+			inflect["participle"]
+			)
+		)

@@ -1,7 +1,7 @@
 var $translations, $query, $table, $searchPhrase;
 
 var colors = [
-	"FFCBAD", "FFF9B6", "D8E9BF", "C5D6CC", "D7BBD9", "B9FCC1" 
+	"FFCBAD", "FFD876", "D8E9BF", "C5D6CC", "D7BBD9", "B9FCC1", "C5FFFD" 
 ];
 
 $(function() {

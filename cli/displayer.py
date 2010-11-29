@@ -28,7 +28,10 @@ def printTable(table):
 	
 	#print the results
 	for row in table:
-		print row["en"].ljust(colWidths["en"] + 2), row["de"].ljust(colWidths["de"]), "(" + row["deOrig"] + ")"
+		print row["en"].ljust(colWidths["en"] + 2), row["de"].ljust(colWidths["de"]),
+		if ("deOrig" in row):
+			print "(" + row["deOrig"] + ")",
+		print
 
 import types
 def showResults(word, results):

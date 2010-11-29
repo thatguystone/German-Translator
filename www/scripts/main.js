@@ -60,7 +60,7 @@ function search(query) {
 			$searchPhrase.empty();
 		},
 		success: function(data) {
-			if (data.length == 0) {
+			if (typeof data.length == "undefined" || data.length == 0) {
 				$table.append('<tr><td colspan="2">No translations found.</td></tr>');
 			} else {
 				var currentColor = -1;
@@ -82,7 +82,11 @@ function search(query) {
 						highlighted[currentWord] = "<span " + style + ">" + highlighted[currentWord] + "</span>";
 					}
 					
-					$table.append("<tr " + style + "><td>" + v.en + "</td><td>" + v.de + " (" + v.deOrig + ")</td></tr>");
+					orig = ""
+					if (typeof v.deOrig != "undefined")
+						orig = "(" + v.deOrig + ")";
+					
+					$table.append("<tr " + style + "><td>" + v.en + "</td><td>" + v.de + " " + orig + "</td></tr>");
 				});
 				
 				$searchPhrase.html(highlighted.join(" "));

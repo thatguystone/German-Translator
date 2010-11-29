@@ -14,7 +14,7 @@ import utf8
 class word(object):
 	"""Encapsulates a word to get all the information about it"""
 	
-	def __init__(self, word, loc = -1, numWords = -1):
+	def __init__(self, word, sentLoc = -1, clauseLoc = -1, numWords = -1):
 		self.word = utf8.encode(word)
 		self.verb = canoo(self.word)
 		self.translations = cache(self.word)
@@ -22,7 +22,8 @@ class word(object):
 		#these are useful for doing calculations with word locations in sentences
 		#in order to figure out if something is a verb or just a noun hanging out in
 		#the middle
-		self.loc = loc
+		self.sentLoc = sentLoc
+		self.clauseLoc = clauseLoc
 		self.numWords = numWords
 	
 	def exists(self):
@@ -42,25 +43,25 @@ class word(object):
 		return self.__isA("adjadv")
 	
 	def isNoun(self):
-		return self.__isA("noun")
+		return self.word.isdigit() or self.__isA("noun")
 	
 	def isVerb(self):
 		#check to see if we are captalized -> nice indication we're not a verb
 		if ((self.isNoun() or self.isAdjAdv()) and self.word[0] >= 'A' and self.word[0] <= 'Z'):
 			#make sure we're not at the beginning of a sentence -- that would be embarassing
-			if (self.loc != 0):
+			if (self.clauseLoc != 0):
 				return False
 		
 		#if we exist, then check our location in the sentence to see the likelihood of being
 		#a verb
 		if (self.verb.exists()):
-			if (self.loc == -1 or self.numWords == -1):
+			if (self.clauseLoc == -1 or self.numWords == -1):
 				return True #not much we can do, we don't have word locations, so just use what we got from canoo
 			
 			#check its location in the sentence
-			if (self.loc < config.getint("deutsch", "word.verbStart")
+			if (self.clauseLoc < config.getint("deutsch", "word.verbStart")
 				or
-				self.loc > (self.numWords - config.getint("deutsch", "word.verbEnd"))):
+				self.clauseLoc > (self.numWords - config.getint("deutsch", "word.verbEnd"))):
 					return True
 			
 		return False

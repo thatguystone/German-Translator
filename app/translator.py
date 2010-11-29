@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import re
+
 from config import config
 import word
 import utf8
@@ -37,23 +39,35 @@ class sentenceFigurer(object):
 	
 	def translate(self):
 		"""Assumes we can translate it, then runs a sentence guesser on it"""
-		return clauseFigurer(self.query).translate()
+		
+		query = re.sub(r"[\(\)\-\&\$\%\#\@\[\]\{\}\+\=]*", "", self.query)
+		
+		tmpClauses = [r.strip() for r in re.split("[,\.\?\!\"\']*", query) if len(r) > 0]
+		
+		#do a pass over the sentence to count words and stuff and stuff
+		words = []
+		numWords = 0
+		for c in tmpClauses:
+			w = c.split(" ")
+			numWords += len(w)
+			words.append(w)
+		
+		#and now do a final pass to build up our word objects
+		loc = 0
+		ret = []
+		for w in words:
+			wLen = len(w)
+			w = [word.word(w, loc + i, i, wLen) for w, i in zip(w, range(0, wLen))]
+			ret += clauseFigurer().translate(w)
+			loc += wLen
+		
+		return ret
 
 class clauseFigurer(object):
-	def __init__(self, query):
-		self.query = query.strip()
-	
-	def translate(self):
+	def translate(self, words):
 		"""Given a complete clause, finds relations amongst verbs and determines their tenses."""
 		
-		#step 1: get all the words in the sentence and remove punctuation
-		rawWords = self.query.replace("-", "").replace("!", "").replace("?", "").replace(".", "").replace(",", "").split(" ")
-		numWords = len(rawWords)
-		
-		#and assign those words their locations
-		words = [word.word(w, i, numWords) for w, i in zip(rawWords, range(0, numWords))]
-		
-		#and run for all the possible verbs (participles could be included in this list)
+		#run for all the possible verbs (participles could be included in this list)
 		tmpVerbs = [v for v in words if v.isVerb()]
 		
 		#all the possible verbs in the sentence
@@ -78,7 +92,7 @@ class clauseFigurer(object):
 		lastWord = words[len(words) - 1]
 		if (lastWord.isSeparablePrefix()):
 			#attempt to see if when we add the prefix to the verb, it is still a verb
-			prefixed = word.word(lastWord.word + possibleVerbs[0].word, possibleVerbs[0].loc, possibleVerbs[0].numWords)
+			prefixed = word.word(lastWord.word + possibleVerbs[0].word, possibleVerbs[0].sentLoc, possibleVerbs[0].clauseLoc, possibleVerbs[0].numWords)
 			if (prefixed.isVerb()):
 				tmpVerbs.remove(possibleVerbs[0])
 				possibleVerbs[0] = prefixed #it's a separable verb, so replace it
@@ -128,7 +142,7 @@ class clauseFigurer(object):
 			#translator run through all its stuff and get the meaning of the verb, and then to
 			#the output it goes
 			if (len(forms) == 0):
-				p = word.word(p.verb.getParticipleStem()[0], p.loc, p.numWords)
+				p = word.word(p.verb.getParticipleStem()[0], p.sentLoc, p.clauseLoc, p.numWords)
 				forms = p.verb.get(True)
 				
 			
@@ -185,11 +199,11 @@ class verbTree(object):
 		#let's determine if we're in a nebensatz
 		#if the verb we found is in the middle of the collection of verbs at the end of the sentence
 		#or at the start of it, then we're looking at a nebensatz
-		fromEnd = self.verbs[i].numWords - (self.verbs[i].loc + 1)
+		fromEnd = self.verbs[i].numWords - (self.verbs[i].clauseLoc + 1)
 		
 		#only look at it if our verb is towards the end and it's not just some short clause
 		#with the verb in 1st or 2nd position, but that still happens to be near the end
-		if ((fromEnd <= 3 and fromEnd >= 0) and self.verbs[i].loc >= 2):
+		if ((fromEnd <= 3 and fromEnd >= 0) and self.verbs[i].clauseLoc >= 2):
 			#we have a special case here: any helper in Konj2 form changes the form of the sentence
 			#so let's just do a quick check to see if we're dealing with that before we resign
 			#ourselves to a full-blown nebensatz
@@ -361,10 +375,10 @@ class verbNode(object):
 		secondFull = second.verb.get(True)[0]["full"]
 		
 		forms = (
-			(word.word(firstFull + " " + secondFull, first.loc, first.numWords), second),
-			(word.word(secondFull + " " + firstFull, first.loc, first.numWords), first),
-			(word.word(firstFull + secondFull, first.loc, first.numWords), second),
-			(word.word(secondFull + firstFull, first.loc, first.numWords), first)
+			(word.word(firstFull + " " + secondFull, first.sentLoc, first.clauseLoc, first.numWords), second),
+			(word.word(secondFull + " " + firstFull, first.sentLoc, first.clauseLoc, first.numWords), first),
+			(word.word(firstFull + secondFull, first.sentLoc, first.clauseLoc, first.numWords), second),
+			(word.word(secondFull + firstFull, first.sentLoc, first.clauseLoc, first.numWords), first)
 		)
 		
 		#go through all possible combinations
@@ -643,7 +657,7 @@ class verbNode(object):
 				"en": "(" + self.tense + ") " + t["en"],
 				"de": fullForm,
 				"deOrig": origWord,
-				"deWordLocation": self.verb.loc
+				"deWordLocation": self.verb.sentLoc
 			}))
 	
 	def dump(self):
@@ -652,7 +666,7 @@ class verbNode(object):
 		if self.tense == None:
 			tense = "helper"
 			
-		print self.verb.word + "(" + tense + ")",
+		print self.verb.word + " (" + tense + ")",
 		if (self.child != None):
 			print " ->  ",
 			self.child.dump()

@@ -62,5 +62,6 @@ def handler(req):
 
 def setup():
 	config.do()
+	config.config.set("deutsch", "debug", "False")
 
 setup()

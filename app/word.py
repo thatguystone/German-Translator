@@ -189,7 +189,7 @@ class cache(internetInterface):
 		words = self.searchFromDB()
 		
 		#if we didn't find any words in our translations table
-		if (type(words) == bool):
+		if (len(words) == 0):
 			#before we hit the internet, make sure we haven't already searched for this and failed
 			success = self.db.query("""
 				SELECT `success` FROM `searches`

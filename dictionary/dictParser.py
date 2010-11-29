@@ -35,7 +35,7 @@ class wordContainer(object):
 	def pos(cls, en, de):
 		#see if we have a modal
 		if ((de.word.find("{adj}") == -1 and de.word.find("{vt}") == -1 and de.word.find("{vi}") == -1)
-			and de.word in (u"mögen", "wollen", "sollen", "werden", u"können", u"müssen")
+			and de.word in (u"mögen", "wollen", "sollen", "werden", u"können", u"müssen", u"dürfen")
 		):
 			pos = "verb"
 		elif (en.orig.find("to ") == 0):

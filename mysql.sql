@@ -24,12 +24,12 @@ DROP TABLE IF EXISTS `searches`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `searches` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `search` varchar(100) NOT NULL,
-  `source` enum('leo','canoo') NOT NULL,
+  `search` varchar(100) COLLATE latin1_german2_ci NOT NULL,
+  `source` enum('leo','canoo') COLLATE latin1_german2_ci NOT NULL,
   `success` tinyint(1) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `search` (`search`,`source`,`success`)
-) ENGINE=InnoDB AUTO_INCREMENT=665311 DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM AUTO_INCREMENT=565618 DEFAULT CHARSET=latin1 COLLATE=latin1_german2_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -41,17 +41,17 @@ DROP TABLE IF EXISTS `translations`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `translations` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `en` varchar(100) NOT NULL,
-  `enExt` varchar(200) NOT NULL,
-  `de` varchar(100) NOT NULL,
-  `deExt` varchar(200) NOT NULL,
-  `pos` enum('adjadv','noun','prep','verb') NOT NULL COMMENT 'Not piece of shit -- part of speech',
+  `en` varchar(100) COLLATE latin1_german2_ci NOT NULL,
+  `enExt` varchar(200) COLLATE latin1_german2_ci NOT NULL,
+  `de` varchar(100) COLLATE latin1_german2_ci NOT NULL,
+  `deExt` varchar(200) COLLATE latin1_german2_ci NOT NULL,
+  `pos` enum('adjadv','noun','prep','verb') COLLATE latin1_german2_ci NOT NULL COMMENT 'Not piece of shit -- part of speech',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uniqueifier` (`en`,`de`,`pos`),
   KEY `de` (`de`),
   KEY `en_de` (`en`,`de`),
   KEY `en` (`en`)
-) ENGINE=InnoDB AUTO_INCREMENT=393672 DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM AUTO_INCREMENT=387479 DEFAULT CHARSET=latin1 COLLATE=latin1_german2_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -63,15 +63,15 @@ DROP TABLE IF EXISTS `verbs`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `verbs` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `full` varchar(50) NOT NULL,
-  `stem` varchar(50) NOT NULL,
-  `preterite` varchar(50) NOT NULL,
-  `hilfsverb` enum('haben','sein') NOT NULL,
-  `perfect` varchar(50) NOT NULL,
-  `first` varchar(50) NOT NULL,
-  `third` varchar(50) NOT NULL,
-  `subj2` varchar(50) NOT NULL,
-  `participle` varchar(50) NOT NULL,
+  `full` varchar(50) COLLATE latin1_german2_ci NOT NULL,
+  `stem` varchar(50) COLLATE latin1_german2_ci NOT NULL,
+  `preterite` varchar(50) COLLATE latin1_german2_ci NOT NULL,
+  `hilfsverb` enum('haben','sein') COLLATE latin1_german2_ci NOT NULL,
+  `perfect` varchar(50) COLLATE latin1_german2_ci NOT NULL,
+  `first` varchar(50) COLLATE latin1_german2_ci NOT NULL,
+  `third` varchar(50) COLLATE latin1_german2_ci NOT NULL,
+  `subj2` varchar(50) COLLATE latin1_german2_ci NOT NULL,
+  `participle` varchar(50) COLLATE latin1_german2_ci NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `full` (`full`,`hilfsverb`,`stem`,`first`),
   KEY `stem` (`stem`),
@@ -83,7 +83,7 @@ CREATE TABLE `verbs` (
   KEY `first` (`first`),
   KEY `participle` (`participle`),
   KEY `full_2` (`full`)
-) ENGINE=InnoDB AUTO_INCREMENT=23159 DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM AUTO_INCREMENT=7798 DEFAULT CHARSET=latin1 COLLATE=latin1_german2_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
@@ -95,4 +95,4 @@ CREATE TABLE `verbs` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2010-11-29 15:33:18
+-- Dump completed on 2010-11-29 16:48:19

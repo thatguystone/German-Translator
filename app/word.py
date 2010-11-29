@@ -556,7 +556,7 @@ class canoo(internetInterface):
 		
 		form = forms[0]
 		
-		return (form["full"] in (u"mögen", "wollen", "sollen", "werden", u"können", u"müssen"))
+		return (form["full"] in (u"mögen", "wollen", "sollen", "werden", u"können", u"müssen", u"dürfen"))
 	
 	def get(self, unknownHelper = False, returnAll = False, helper = ""):
 		"""
@@ -627,7 +627,14 @@ class canoo(internetInterface):
 				#this is so slow :(
 				items = r.values()
 				if (arg in items or self.word in items):
-					ret.append(r)
+					if (find != None and replace != None):
+						tmp = dict()
+						for k, v in r.iteritems():
+							tmp[k] = unicode(v).replace(replace, find)
+						tmp["full"] = r["full"]
+						ret.append(tmp)
+					else:
+						ret.append(r)
 	
 	def __search(self):
 		"""
@@ -940,14 +947,18 @@ class canoo(internetInterface):
 			for inflect in res:
 				#store every combination of "ß" and "ss" -> so that old german spellings work
 				self.__stashInsert(inflect)
-				self.__stashInsert(inflect, u"ß", "ss")
-				self.__stashInsert(inflect, "ss", u"ß")
 				
-				if (inflect["full"].find(u"ß") > -1):
-					self.__stashSearch(inflect["full"].replace(u"ß", "ss"), 1)
-				
-				if (inflect["full"].find("ss") > -1):
-					self.__stashSearch(inflect["full"].replace("ss", u"ß"), 1)
+				#
+				#no longer necessary -- MySQL collations suck0rz :(
+				#
+				#self.__stashInsert(inflect, u"ß", "ss")
+				#self.__stashInsert(inflect, "ss", u"ß")
+				#
+				#if (inflect["full"].find(u"ß") > -1):
+				#	self.__stashSearch(inflect["full"].replace(u"ß", "ss"), 1)
+				#
+				#if (inflect["full"].find("ss") > -1):
+				#	self.__stashSearch(inflect["full"].replace("ss", u"ß"), 1)
 	
 	def __stashSearch(self, search, success):
 		self.db.insert("""

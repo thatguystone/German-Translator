@@ -385,7 +385,7 @@ class verbNode(object):
 		
 		#go through all possible combinations
 		for f in forms:
-			if (type(f[0].translations.searchFromDB()) != bool):
+			if (len(f[0].translations.searchFromDB()) > 0):
 				#store the conjugation and defineable forms
 				self.verb = f[0]
 				self.conjugation = f[1]

@@ -56,8 +56,8 @@ class word(object):
 		#if there was no ending...just check our list
 		if (w != self.word):
 			return word(w).isAdj()
-		
-		return False			
+		else:
+			return self.__isA("adjadv")
 	
 	def isNoun(self):
 		if (self.word.isdigit()):
@@ -70,7 +70,7 @@ class word(object):
 		
 		#maybe we have a plural?
 		w = self.word
-		for r in ("e", "en", "n", "er", "nen", "se"):
+		for r in ("e", "en", "n", "er", "nen", "se", "s"):
 			if (w[len(w) - len(r):] == r): #remove the end, but only once (thus, rstrip doesn't work)
 				w = w[:len(w) - len(r)]
 				break
@@ -96,9 +96,6 @@ class word(object):
 			#make sure we're not at the beginning of a sentence -- that would be embarassing
 			if (self.clauseLoc != 0):
 				return False
-		
-		if (self.isAdj()):
-			return False
 		
 		#if we exist, then check our location in the sentence to see the likelihood of being
 		#a verb
@@ -622,8 +619,15 @@ class canoo(internetInterface):
 				`participle`=%s
 			;
 		""", (self.word, ) + (arg, ) * 7)
+		
+		#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		#STUPID MYSQL BUG!!!!!!!!!!!!!!!!!!
 		if (type(rows) != bool):
-			ret += rows
+			for r in rows:
+				#this is so slow :(
+				items = r.values()
+				if (arg in items or self.word in items):
+					ret.append(r)
 	
 	def __search(self):
 		"""

@@ -1,6 +1,6 @@
 #translationBox {
 	background: #FAFFE9;
-	width: 300px;
+	width: 350px;
 	height: 120px;
 	overflow: auto;
 	border: 7px solid #CEDC9C;
@@ -8,7 +8,7 @@
 	-webkit-border-radius: 15px;
 	border-radius: 15px;
 	
-	font-size: 25px;
+	font-size: 12px;
 	
 	position: fixed;
 	top: 10px;

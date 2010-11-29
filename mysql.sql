@@ -29,7 +29,7 @@ CREATE TABLE `searches` (
   `success` tinyint(1) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `search` (`search`,`source`,`success`)
-) ENGINE=InnoDB AUTO_INCREMENT=205718 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=664852 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -83,7 +83,7 @@ CREATE TABLE `verbs` (
   KEY `first` (`first`),
   KEY `participle` (`participle`),
   KEY `full_2` (`full`)
-) ENGINE=InnoDB AUTO_INCREMENT=23158 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=23156 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
@@ -95,4 +95,4 @@ CREATE TABLE `verbs` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2010-11-29 14:25:53
+-- Dump completed on 2010-11-29 15:15:38

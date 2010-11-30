@@ -41,6 +41,7 @@
 		
 		#translationBox .container .translation {
 			padding: 0px 15px;
+			overflow: auto;
 		}
 			#translationBox .container .translation table.info {
 				width: 100%;

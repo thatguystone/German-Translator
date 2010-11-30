@@ -42,7 +42,7 @@ class sentenceFigurer(object):
 		
 		query = re.sub("[\(\)\-\&\$\%\#\@\[\]\{\}\+\=\"\']*", "", self.query)
 		
-		tmpClauses = [r.strip() for r in re.split("[,\.\?\!]*", query) if len(r) > 0]
+		tmpClauses = [r.strip() for r in re.split("[,\.\?\!\;]*", query) if len(r) > 0]
 		
 		#do a pass over the sentence to count words and stuff and stuff
 		words = []
@@ -152,13 +152,15 @@ class clauseFigurer(object):
 			loc = p.sentLoc
 			
 			#fix for python 2.4
-			tense = "past"
-			if presentParticiple:
-				tense = "present"
+			tense = "past participle"
+			if (fullForm == origWord):
+				tense = "infinitive" 
+			elif (presentParticiple):
+				tense = "present participle"
 			
 			for t in p.get("verb"):
 				meanings.append({
-					"en": "(" + tense + " participle) " + t["en"],
+					"en": "(" + tense + ") " + t["en"],
 					"de": fullForm,
 					"deOrig": origWord,
 					"deWordLocation": loc
@@ -347,7 +349,18 @@ class verbNode(object):
 		
 		#we don't qualify, move on to our child
 		elif (self.child != None):
-			self.child.pruneParticiples(self, participles)
+			#if we have an infinitive as our child without at ense, and we don't have a tense, lose it
+			#it's an infinitive, and we have no use for it
+			if (self.tense == None
+				and
+				self.child.tense == None
+				and
+				self.child.verb.verb.word == self.child.verb.verb.get(True)[0]["full"]
+			):
+				participles.append(self.child.verb)
+				self.child = None
+			else:
+				self.child.pruneParticiples(self, participles)
 	
 	def appendMeanings(self, meanings):
 		[meanings.append(m) for m in self.meanings]

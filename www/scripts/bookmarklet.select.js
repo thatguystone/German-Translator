@@ -2,6 +2,9 @@ var colors = [
 	"FFCBAD", "FFD876", "D8E9BF", "C5D6CC", "D7BBD9", "B9FCC1"
 ];
 
+var $title, $translationBox, $translations, $highlightedText, $translationBoxContainer, $translationsDiv;
+var windowHeight, windowWidth;
+
 function verbinatorBookmarkletInit() {
 	$("body").append('<div id="translationBox"> \
 		<div class="container"> \
@@ -21,6 +24,16 @@ function verbinatorBookmarkletInit() {
 		</div> \
 	</div>');
 	
+	$title = $("#translationBox .title");
+	$translationBox = $("#translationBox");
+	$translations = $("#translations");
+	$translationsDiv = $("#translationBox .container .translation");
+	$highlightedText = $("#highlightedText");
+	$translationBoxContainer = $("#translationBox .container");
+	
+	windowWidth = $(window).width();
+	windowHeight = $(window).height();
+	
 	$("body").bind("mouseup", function(e) {
 		text = getSelectedText();
 		
@@ -29,22 +42,22 @@ function verbinatorBookmarkletInit() {
 		translate(text);
 	});
 	
-	$("#translationBox").click(function() {
+	$translationBox.click(function() {
 		$(this).hide();
 	})
 	
-	$("#translationBox").css("left", ($(window).width() - $("#translationBox").outerWidth() - 10) + "px");
+	$translationBox.css("left", (windowWidth - $translationBox.outerWidth() - 10) + "px");
 }
 
 function translate(text) {
-	if (text.toString().length == 0)
-		return;
-	
 	text = text.toString().trim();
 	
-	$("#translationBox").addClass("loading").find(".container").hide().end().show();
-	$("#translations").empty();
-	$("#highlightedText").text("loading...");
+	if (text.length == 0)
+		return;
+	
+	$translationBox.addClass("loading").find(".container").hide().end().show();
+	$translations.empty();
+	$highlightedText.text("loading...");
 	
 	var highlighted = text.replace("-", "").split(" ");
 	
@@ -52,7 +65,7 @@ function translate(text) {
 		url: "http://deutsch/api",
 		type: "get",
 		dataType: "jsonp",
-		data: "input=" + text.toString(),
+		data: "input=" + encodeURIComponent(text.toString()),
 		success: function(data) {
 			var $table = $("#translations");
 			var currentColor = -1;
@@ -61,7 +74,7 @@ function translate(text) {
 				
 			if (data.length == 0) {
 				$table.append('<tr><td colspan="2">No translations found.</td></tr>');
-				$("#highlightedText").text("No translations found.");
+				$highlightedText.text("No translations found.");
 			} else {
 				//make the translations print out in sentence order
 				data.sort(dataSorter);
@@ -85,13 +98,18 @@ function translate(text) {
 					$table.append("<tr " + style + "><td>" + v.en + "</td><td>" + v.de + " " + orig + "</td></tr>");
 				});
 				
-				$("#highlightedText").html(highlighted.join(" "));
+				$highlightedText.html(highlighted.join(" "));
 			}
 			
-			$("#translationBox .container").show();
-			height = ($("#translationBox .title").height() + $("#translationBox .translation").height()) + 14; 
-			$("#translationBox").removeClass("loading").css("height", height + "px");
-			$("#translationBox .container").css("height", (height - 2) + "px");
+			$translationBoxContainer.show();
+			height = ($title.height() + $("#translationBox .translation").height()) + 14;
+			
+			if (height > windowHeight)
+				height = windowHeight - 30;
+			
+			$translationsDiv.css("height", (height - $title.height() - 15) + "px");
+			$translationBox.removeClass("loading").css("height", height + "px");
+			$translationBoxContainer.css("height", (height - 2) + "px");
 		}
 	});
 }

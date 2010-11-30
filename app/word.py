@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from config import config
 import urllib
 from pyquery import PyQuery as pq
 import re
@@ -7,11 +6,10 @@ import time
 import os
 import codecs
 
+from config import config
 from mysql import mysql
 import translator
 import utf8
-
-import traceback
 
 class word(object):
 	"""Encapsulates a word to get all the information about it"""
@@ -104,9 +102,9 @@ class word(object):
 				return True #not much we can do, we don't have word locations, so just use what we got from canoo
 			
 			#check its location in the sentence
-			if (self.clauseLoc < config.getint("deutsch", "word.verbStart")
+			if (self.clauseLoc <= config.getint("deutsch", "word.verbStart")
 				or
-				self.clauseLoc > (self.numWords - config.getint("deutsch", "word.verbEnd"))):
+				self.clauseLoc >= (self.numWords - config.getint("deutsch", "word.verbEnd"))):
 					return True
 			
 		return False
@@ -229,9 +227,7 @@ class cache(internetInterface):
 			#any time soon -- ß = s, which is just....false...lslajsdfkjaskldfjask;ldfjsa;ldfjas;dklf
 			#bug: http://bugs.mysql.com/bug.php?id=27877
 			#this is a horrible work around :(
-			for r in rows:
-				if (r["de"] == arg):
-					ret.append(r)
+			ret += rows
 	
 	def searchFromDB(self):
 		if (self.dbCache != None):

@@ -74,6 +74,7 @@ def go():
 		""" % e
 		db.insert(sql)
 	
+	#and adjectives with their endings
 	for e in ("es", "en", "er", "em", "e"):
 		sql = """
 			INSERT IGNORE INTO `searches` (`search`, `source`, `success`)

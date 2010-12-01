@@ -95,6 +95,10 @@ class word(object):
 			if (self.clauseLoc != 0):
 				return False
 		
+		#"sein" is an ambiguous word -- remove it if it has any endings
+		if (self.word in ("seine", "seines", "seiner", "seinen", "seinem")):
+			return False
+		
 		#if we exist, then check our location in the sentence to see the likelihood of being
 		#a verb
 		if (self.verb.exists()):
@@ -720,19 +724,29 @@ class canoo(internetInterface):
 		#the first is our verb info table
 		info = page.find("#index").find("table.verbFormsTable").eq(0).find("tr")
 		
-		prefix = info.eq(3).find("td").eq(0).text()
-		if (prefix == None or prefix == "-" or prefix[0] == "("):
-			prefix = ""
-		participle = info.eq(6).find("td").eq(0).text()
-		
 		tbl = page.find("#verbFormsTable tr")
 		
 		full = self.word
 		stem = self.getStem(full)
 		
+		#there was an error on their end, ignore and move on
+		if (page.html().find("SQLSTATE[21000]") > -1):
+			return
+		
 		if (tbl.eq(1).find("td").eq(0).text() == None):
 			self.__stashResults([])
 			return
+		
+		prefix = info.eq(3).find("td").eq(0).text()
+		if (prefix == None or prefix == "-" or prefix[0] == "("):
+			prefix = ""
+			
+			wir = tbl.eq(1).find("td").eq(3).text().split(" ")
+			#if we have a verb like "bleibenlassen" where we're not given the separable counterpart
+			if (len(wir) > 1 and full != wir[0] and len(full.replace(wir[0], "")) > 0):
+				prefix = tbl.eq(1).find("td").eq(3).text().split(" ")[1]
+			
+		participle = info.eq(6).find("td").eq(0).text()
 		
 		first = self.getStem(prefix + tbl.eq(1).find("td").eq(0).text().split(" ")[0])
 		

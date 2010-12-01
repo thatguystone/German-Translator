@@ -113,15 +113,23 @@ class clauseFigurer(object):
 		#do our first pass on the tree to clean out the remaining participles
 		tree.translate(translate = False)
 		
+		#clear our ambiguous "sein"s
+		sein = tree.pruneSein()
+		
+		if (len(sein) > 0):
+			[tmpVerbs.remove(v) for v in sein]
+			
+			#do our second pass on the tree, if we removed some "sein"s
+			tree.translate(translate = False)
+		
 		#add the mistaken participles to our participle list
 		participles += tree.pruneParticiples()
 		
-		#do a second pass (now that it's clean) for the actual tenses and translations
+		#do a final pass (now that it's clean) for the actual tenses and translations
 		tree.translate(translate = True)
 
 		#debugging dump of the tenses and nodes
-		if (config.getboolean("deutsch", "debug")):
-			tree.dump()
+		tree.dump()
 		
 		#grab all the used verbs
 		verbs = tmpVerbs[:]
@@ -184,7 +192,9 @@ class tenses(object):
 	PLUSQUAM = "plusquamperfekt"
 	PRESENT = "present"
 	PRETERITE = "preterite"
-
+	
+	FUTURE2_HELPER = "future2 helper"
+	
 class verbTree(object):
 	def __init__(self, verbs):
 		self.verbs = verbs
@@ -266,6 +276,11 @@ class verbTree(object):
 		
 		return participles
 	
+	def pruneSein(self):
+		ret = []
+		self.node.pruneSein(ret, self)
+		return ret
+		
 	def getMeanings(self):
 		meanings = []
 		self.node.appendMeanings(meanings)
@@ -277,8 +292,9 @@ class verbTree(object):
 		return verbs
 	
 	def dump(self):
-		self.node.dump()
-		print
+		if (config.getboolean("deutsch", "debug")):
+			self.node.dump()
+			print
 
 class verbNode(object):
 	doTranslations = False
@@ -355,8 +371,8 @@ class verbNode(object):
 		
 		#we don't qualify, move on to our child
 		elif (self.child != None):
-			#if we have an infinitive as our child without at ense, and we don't have a tense, lose it
-			#it's an infinitive, and we have no use for it
+			#if we have an infinitive as our child without a tense, and we don't have a tense, lose it
+			#if it's an infinitive, and we have no use for it
 			if (self.tense == None
 				and
 				self.child.tense == None
@@ -367,6 +383,32 @@ class verbNode(object):
 				self.child = None
 			else:
 				self.child.pruneParticiples(self, participles)
+	
+	def pruneSein(self, ret, tree, parent = None):
+		"""
+		"sein" can be ambiguous -- so, once we have a tense tree, we can go through and decide if sein
+		is playing a role in the sentence or if it was missclassified.
+		"""
+		
+		#if we don't have a child
+		if (self.child == None):
+			#and are just a dangling "sein"
+			if (self.tense == None and self.verb.word == "sein"):
+				parent.child = None
+				ret.append(self.verb)
+			return
+		
+		#if we're "sein" and doing nothing to the sentence
+		if (self.verb.word == "sein" and self.tense == None and self.child.tense == None):
+			if (parent == None):
+				tree.node = self.child
+			else:
+				parent.child = self.child
+			
+			#append the sein to our list of verbs to remove from the list of verbs
+			ret.append(self.verb)
+		
+		self.child.pruneSein(ret, tree, self)
 	
 	def appendMeanings(self, meanings):
 		[meanings.append(m) for m in self.meanings]
@@ -606,6 +648,7 @@ class verbNode(object):
 			and self.child != None
 			and self.child.conjugation.verb.getStem() == self.child.conjugation.verb.get(True)[0]["perfect"]
 		):
+			self.setTense(tenses.FUTURE2_HELPER)
 			self.child.setTense(tenses.FUTURE2)
 			self.child.__doTranslations(self.child.conjugation.verb.get(True)[0]["full"])
 		#something going on with werden -> conditional present, passive voice

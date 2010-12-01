@@ -1,5 +1,12 @@
 javascript:(
 	function(){
+		var css;
+		css=document.createElement('link');
+		css.type='text/css';
+		css.rel='stylesheet';
+		css.href='http://deutsch/css/bookmarklet.css';
+		document.getElementsByTagName('head')[0].appendChild(css);
+
 		var addjQuery;
 		addjQuery=document.createElement('script');
 		addjQuery.type='text/javascript';
@@ -13,12 +20,6 @@ javascript:(
 			bookmarklet.language='javascript';
 			bookmarklet.src='http://deutsch/scripts/bookmarklet.select.js';
 			document.getElementsByTagName('head')[0].appendChild(bookmarklet);
-			
-			css=document.createElement('link');
-			css.type='text/css';
-			css.rel='stylesheet';
-			css.href='http://deutsch/css/bookmarklet.css';
-			document.getElementsByTagName('head')[0].appendChild(css);
 			
 			bookmarklet.onload = function() {
 				verbinatorBookmarkletInit();

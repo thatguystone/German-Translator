@@ -39,20 +39,23 @@ function verbinatorBookmarkletInit() {
 	windowWidth = $(window).width();
 	windowHeight = $(window).height();
 	
-	//stop double loading
 	$("body").bind("mouseup", function(e) {
 		text = getSelectedText();
-		
 		selectedText = text;
-		
 		translate(text);
 	});
-	
+
+	$translationBox.css("left", (windowWidth - $translationBox.outerWidth() - 10) + "px");
+}
+
+function translationBoxBind() {
 	$translationBox.click(function() {
 		$(this).hide();
-	})
-	
-	$translationBox.css("left", (windowWidth - $translationBox.outerWidth() - 10) + "px");
+	});
+}
+
+function translationBoxUnbind() {
+	$translationBox.unbind("click");
 }
 
 function translate(text) {
@@ -64,6 +67,9 @@ function translate(text) {
 	$translationBox.addClass("loading").find(".container").hide().end().show();
 	$translations.empty();
 	$highlightedText.text("loading...");
+	//don't let the translation box be closed during loading
+	translationBoxUnbind();
+	$translationBox.css("height", "35px");
 	
 	var highlighted = text.replace("-", "").split(" ");
 	
@@ -86,7 +92,7 @@ function translate(text) {
 				data.sort(dataSorter);
 				//randomize the highlight colors
 				colors.shuffle();
-			
+				
 				$.each(data, function(i, v) {
 					if (currentWord == -1 || v.deWordLocation != currentWord) {
 						currentWord = v.deWordLocation;
@@ -108,14 +114,20 @@ function translate(text) {
 			}
 			
 			$translationBoxContainer.show();
-			height = ($title.height() + $("#translationBox .translation").height()) + 14;
 			
-			if (height > windowHeight)
-				height = windowHeight - 30;
+			//allow the box to be closed by clicking it
+			translationBoxBind();
 			
-			$translationsDiv.css("height", (height - $title.height() - 15) + "px");
-			$translationBox.removeClass("loading").css("height", height + "px");
-			$translationBoxContainer.css("height", (height - 2) + "px");
+			//use the calculated height for our measurements, not the css height
+			height = $translationsDiv.height() + 15; //magic 15! no, it's for the padding / borders
+			titleHeight = $title.height();
+			
+			if ((titleHeight + height) > windowHeight)
+				height = windowHeight - titleHeight - 30; //fit the popup into the window
+			
+			$translationsDiv.css("height", (height - 15) + "px");
+			$translationBox.removeClass("loading").css("height", (titleHeight + height) + "px");
+			$translationBoxContainer.css("height", (titleHeight + height - 2) + "px");
 		}
 	});
 }

@@ -6,6 +6,11 @@ var $title, $translationBox, $translations, $highlightedText, $translationBoxCon
 var windowHeight, windowWidth;
 
 function verbinatorBookmarkletInit() {
+	//stop the bookmarklet from being loaded multiple times -- this probably should be in the bookmarklet loader, but meh
+	if ($("#translationBox").length > 0) {
+		return;
+	}
+
 	$("body").append('<div id="translationBox"> \
 		<div class="container"> \
 			<div class="title"> \
@@ -34,6 +39,7 @@ function verbinatorBookmarkletInit() {
 	windowWidth = $(window).width();
 	windowHeight = $(window).height();
 	
+	//stop double loading
 	$("body").bind("mouseup", function(e) {
 		text = getSelectedText();
 		

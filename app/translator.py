@@ -7,19 +7,25 @@ import utf8
 
 def translate(query):
 	"""Does the hefty work of translating the input"""
-
-	query = utf8.encode(query)
 	
-	#replace ae, oe, ue with ä, ö, ü
-	for i in (("ae", u"ä"), ("oe", u"ö"), ("ue", u"ü")):
-		query = query.replace(i[0], i[1])
-	
-	if (sentenceFigurer.canTranslate(query)):
-		s = sentenceFigurer(query)
-		return s.translate()
-	else:
-		w = word.word(query)
-		return w.get()
+	try:
+		query = utf8.encode(query)
+		
+		#replace ae, oe, ue with ä, ö, ü
+		for i in (("ae", u"ä"), ("oe", u"ö"), ("ue", u"ü")):
+			query = query.replace(i[0], i[1])
+		
+		if (sentenceFigurer.canTranslate(query)):
+			s = sentenceFigurer(query)
+			return s.translate()
+		else:
+			w = word.word(query)
+			return w.get()
+	except:
+		if (config.getboolean("deutsch", "debug")):
+			raise
+		else:
+			return []
 
 def printWords(words):
 	print [w.word for w in words]

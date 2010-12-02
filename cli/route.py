@@ -30,10 +30,6 @@ class router:
 		
 		parser = OptionParser()
 		
-		parser.add_option("-t", "--test",
-			action="store_true", default=False, dest="test",
-			help=""
-		)
 		
 		parser.add_option("-w", "--word",
 			action="store", type="string", dest="word",

@@ -612,17 +612,25 @@ class canoo(internetInterface):
 				OR
 				`first`=%s
 				OR
+				`firstPlural`=%s
+				OR
+				`second`=%s
+				OR
 				`third`=%s
+				OR
+				`thirdPlural`=%s
 				OR
 				`subj2`=%s
 				OR
 				`participle`=%s
 			;
-		""", (self.word, ) + (arg, ) * 7)
+		""", (self.word, ) + (arg, ) * 10)
 		
 		#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		#STUPID MYSQL BUG!!!!!!!!!!!!!!!!!!
 		if (type(rows) != bool):
+			ret += rows
+			return
 			for r in rows:
 				#this is so slow :(
 				items = r.values()
@@ -765,9 +773,12 @@ class canoo(internetInterface):
 			self.__stashResults([])
 			return
 		
+		firstPlural = self.getStem(prefix + tbl.eq(1).find("td").eq(3).text().split(" ")[0])
+		second = self.getStem(prefix + tbl.eq(1).find("td").eq(1).text().split(" ")[0])
 		third = self.getStem(prefix + tbl.eq(1).find("td").eq(2).text().split(" ")[0])
+		thirdPlural = self.getStem(prefix + tbl.eq(1).find("td").eq(4).text().split(" ")[0])
 		preterite = self.getStem(prefix + tbl.eq(2).find("td").eq(0).text().split(" ")[0])
-		perfect = self.getStem(tbl.eq(7).find("td").eq(0).text().split(" ").pop())
+		perfect = self.getStem(tbl.eq(7).find("td").eq(0).text().split(" ").pop()) #already has separable part attached
 		subj2 = self.getStem(prefix + tbl.eq(6).find("td").eq(0).text().split(" ")[0])
 		
 		hilfsverb = tbl.eq(7).find("td").eq(3).text().split(" ")[0]
@@ -783,7 +794,10 @@ class canoo(internetInterface):
 			preterite = self.removeParens(preterite),
 			perfect = self.removeParens(perfect),
 			first = self.removeParens(first),
+			firstPlural = self.removeParens(firstPlural),
+			second = self.removeParens(second),
 			third = self.removeParens(third),
+			thirdPlural = self.removeParens(thirdPlural),
 			subj2 = self.removeParens(subj2),
 			participle = self.removeParens(participle)
 		)]
@@ -846,145 +860,6 @@ class canoo(internetInterface):
 				ret += w
 		
 		return ret
-		
-	def __scrapeCanoo_hitCanoo(self):
-		"""Grabs the inflections of all verbs that match the query"""
-		
-		if (self.hitInternet):
-			return []
-		
-		self.hitInternet = True
-		
-		#first, check to see if we've failed on this search before
-		failed = self.db.query("""
-			SELECT 1 FROM `searches`
-			WHERE
-				`search`=%s
-				AND
-				`source`="canoo"
-				AND
-				`success`=0
-		""", (self.word))
-		
-		if (failed):
-			retu
-			
-		#hit the page
-		url = unicode(self.word)
-		for c, r in zip([u'ä', u'ö', u'ü', u'ß'], ['ae', 'oe', 'ue', 'ss']): #sadiofhpaw8oenfasienfkajsdf! urls suck
-			url = url.replace(c, r)
-		
-		p = self.__getCanooPage('http://www.canoo.net/services/Controller?dispatch=inflection&input=%s' % urllib.quote(url.encode("utf-8")))
-		
-		#setup our results
-		ret = []
-
-		#canoo does some different routing depending on the results for the word, so let's check what page
-		#we recieved in order to verify we perform the right action on it
-		if (p.find("h1.Headline").text() != u"Wörterbuch Wortformen"):
-			if(p.find("h1.Headline").text().find(u"Keine Einträge gefunden") >= 0
-				or
-				len(p.find("div#WordClass[title=Verb]")) == 0
-			):
-				pass #nothing found
-			else:
-				ret.append(self.__processPage(p))
-		else:
-			#grab the links
-			#(require there to be a "," after "Verb" -> fix for "Verboten")
-			links = [l for l in p.find("td.contentWhite a[href^='/services/Controller?dispatch=inflection']") if pq(l).text().find("Verb,") >= 0]
-			
-			#append all the information from all the pages we found in the search
-			for a in links:
-				ret.append(self.__scrapePage(a))
-		
-		return ret
-			
-	def __scrapePage(self, a):
-		"""Scrapes a page on canoo.net to find the verb forms"""
-		
-		#scrape the page with information about the verb
-		url = pq(a).attr.href
-		
-		page = self.__getCanooPage('http://www.canoo.net/' + url)
-		
-		return self.__processPage(page)
-	
-	def __pyQueryGetTable(self, tables, header):
-		"""Canoo changed its layout...now I have to do more brute-forcing to grab the info"""
-		for h in (header, header + u" regelmäßig"):
-			t = tables.filter(lambda i: pq(this).text() == h).closest("table").find("tr")
-			if (len(t) != 0):
-				return t
-		
-		return ()
-	
-	def __processPage(self, page):
-		#just use "q" for a basic "query" holder
-		
-		#CANOO CHANGED THEIR PAGE LAYOUT!! ARGGGGGGGETHHHHHHH!
-		
-		#find the tables holding all the info
-		tables = page.find("td.colTitle")
-		
-		#attempt to figure out, by ourselves, if we're a separable verb or not
-		separable = False
-		present = self.__pyQueryGetTable(tables, u"Präsens")
-		
-		#if we couldn't find a non-separable, try a separable
-		if (len(present) == 0):
-			#and the column moves one to the right (make room for "...dass")
-			present = self.__pyQueryGetTable(tables, u"Präsens  Nebensatz") #there are two spaces in these table headers....wtf?
-			
-			#don't grab the "ich" for first ("...dass" is in the ich tr)
-			first = self.getStem(present.eq(3).find("td").eq(2))
-			third = self.getStem(present.eq(5).find("td").eq(1))
-			
-			separable = True
-		else:
-			first = self.getStem(present.eq(3).find("td").eq(1))
-			third = self.getStem(present.eq(5).find("td").eq(1))
-		
-		#find the preterite
-		if (separable):
-			q = self.__pyQueryGetTable(tables, u"Präteritum  Nebensatz") #there are two spaces in these table headers....wtf?
-			preterite = self.getStem(q.eq(3).find("td").eq(2))
-			subj2 = self.getStem(q.eq(3).find("td").eq(4))
-		else:
-			q = self.__pyQueryGetTable(tables, u"Präteritum")
-			preterite = self.getStem(q.eq(3).find("td").eq(1))
-			subj2 = self.getStem(q.eq(3).find("td").eq(3))
-		
-		#find the perfekt
-		q = self.__pyQueryGetTable(tables, "Perfekt")
-		perfect = self.getStem(q.eq(3).find("td").eq(2))
-		
-		#and that participle
-		q = self.__pyQueryGetTable(tables, u"Partizip Präsens")
-		participle = self.getStem(q.eq(1).find("td").eq(0))
-		
-		#get the full form of the verb
-		full = page.find("h1.Headline i").text()
-		
-		#the stem is just the full form, minus the -en
-		stem = self.getStem(full)
-		
-		#attempt to get the helper verb
-		helper = self.helperSein
-		if (page.find("div#WordClass").prevAll("table").text().find("Hilfsverb: haben") != -1):
-			helper = self.helperHaben 
-		
-		return dict(
-			full = full,
-			hilfsverb = helper,
-			stem = stem,
-			preterite = preterite,
-			perfect = perfect,
-			first = first,
-			third = third,
-			subj2 = subj2,
-			participle = participle
-		)
 	
 	def __getCanooPage(self, url):
 		"""Canoo has mechanisms to stop scraping, so we have to pause before we hit the links too much"""
@@ -1002,9 +877,15 @@ class canoo(internetInterface):
 		if (canoo.lastCanooLoad != -1 and ((time.time() - self.lastCanooLoad) < canoo.canooWait)):
 			time.sleep(canoo.canooWait - (time.time() - self.lastCanooLoad))
 		
-		canoo.lastCanooLoad = time.time()
-		
 		page = pq(url)
+		
+		i = 0
+		while (page.text().find("Zu viele Anfragen in zu kurzer Zeit") > -1):
+			time.sleep(canoo.canooWait + i)
+			i += 1
+			page = pq(url)
+		
+		canoo.lastCanooLoad = time.time()
 		
 		f = codecs.open(path + "/" + fileUrl, encoding="utf-8", mode="w")
 		f.write(page.html())
@@ -1064,7 +945,10 @@ class canoo(internetInterface):
 				`hilfsverb`=%s,
 				`perfect`=%s,
 				`first`=%s,
+				`firstPlural`=%s,
+				`second`=%s,
 				`third`=%s,
+				`thirdPlural`=%s,
 				`subj2`=%s,
 				`participle`=%s
 			;
@@ -1075,7 +959,10 @@ class canoo(internetInterface):
 			inflect["hilfsverb"],
 			inflect["perfect"],
 			inflect["first"],
+			inflect["firstPlural"],
+			inflect["second"],
 			inflect["third"],
+			inflect["thirdPlural"],
 			inflect["subj2"],
 			inflect["participle"]
 			)

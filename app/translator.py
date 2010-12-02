@@ -28,7 +28,7 @@ def translate(query):
 			return []
 
 def printWords(words):
-	print [w.word for w in words]
+	print [(w.word, w.clauseLoc, w.numWords) for w in words]
 
 class sentenceFigurer(object):
 	def __init__(self, query):
@@ -46,9 +46,8 @@ class sentenceFigurer(object):
 	def translate(self):
 		"""Assumes we can translate it, then runs a sentence guesser on it"""
 		
-		query = re.sub("[\(\)\-\&\$\%\#\@\[\]\{\}\+\=\"\']*", "", self.query)
-		
-		tmpClauses = [r.strip() for r in re.split("[,\.\?\!\;]*", query) if len(r) > 0]
+		#remove any character that can't be used as a word
+		tmpClauses = [re.sub(u"[^a-zA-Z0-9ÄÖÜäöüß\s]*", "", r.strip()) for r in re.split("[,\.\?\!\;]*", self.query) if len(r) > 0]
 		
 		#do a pass over the sentence to count words and stuff and stuff
 		words = []
@@ -107,23 +106,30 @@ class clauseFigurer(object):
 				possibleVerbs[0] = prefixed #it's a separable verb, so replace it
 		
 		#pass it onto the tree constructor to build out our verb tree
-		tree = verbTree(possibleVerbs)
-		tree.build()
+		tree = verbTree()
+		tree.build(possibleVerbs)
 		
 		#do our first pass on the tree to clean out the remaining participles
 		tree.translate(translate = False)
 		
-		#clear our ambiguous "sein"s
-		sein = tree.pruneSein()
+		#clear our ambiguous words
+		ambi = tree.pruneAmbiguousWords()
 		
-		if (len(sein) > 0):
-			[tmpVerbs.remove(v) for v in sein]
+		if (len(ambi) > 0):
+			[tmpVerbs.remove(v) for v in ambi]
+			[possibleVerbs.remove(v) for v in ambi]
+			
+			#and rebuild our tree...again
+			tree.build(possibleVerbs)
 			
 			#do our second pass on the tree, if we removed some "sein"s
 			tree.translate(translate = False)
 		
 		#add the mistaken participles to our participle list
 		participles += tree.pruneParticiples()
+		
+		[possibleVerbs.remove(v) for v in participles]
+		tree.build(possibleVerbs)
 		
 		#do a final pass (now that it's clean) for the actual tenses and translations
 		tree.translate(translate = True)
@@ -196,20 +202,25 @@ class tenses(object):
 	FUTURE2_HELPER = "future2 helper"
 	
 class verbTree(object):
-	def __init__(self, verbs):
-		self.verbs = verbs
-		self.numVerbs = len(self.verbs)
-		self.node = None
-	
-	def build(self):
+	def build(self, verbs):
 		"""
 		Starts the construction of the tree -- it finds the first verb that all verbs in the sentence
 		attach to, then it passes off the remaining verbs (which MUST be at the end of the clause)
 		to the node to figure out
 		"""
 		
+		#we need this...a lot...
+		numVerbs = len(verbs)
+		
+		#if we have no verbs...nothing to process! yay!
+		if (numVerbs == 0):
+			return
+		
+		#reset the tree for yet _another_ pass
+		self.node = None
+		
 		#we can never start off with a participle -> that's not even a verb!
-		for i, v in zip(range(0, self.numVerbs), self.verbs):
+		for i, v in zip(range(0, numVerbs), verbs):
 			if (v.verb.isParticiple()):
 				continue
 			
@@ -219,33 +230,33 @@ class verbTree(object):
 		#let's determine if we're in a nebensatz
 		#if the verb we found is in the middle of the collection of verbs at the end of the sentence
 		#or at the start of it, then we're looking at a nebensatz
-		fromEnd = self.verbs[i].numWords - (self.verbs[i].clauseLoc + 1)
+		fromEnd = verbs[i].numWords - (verbs[i].clauseLoc + 1)
 		
 		#only look at it if our verb is towards the end and it's not just some short clause
 		#with the verb in 1st or 2nd position, but that still happens to be near the end
-		if ((fromEnd <= 3 and fromEnd >= 0) and self.verbs[i].clauseLoc >= 2):
+		if ((fromEnd <= 3 and fromEnd >= 0) and verbs[i].clauseLoc >= 2):
 			#we have a special case here: any helper in Konj2 form changes the form of the sentence
 			#so let's just do a quick check to see if we're dealing with that before we resign
 			#ourselves to a full-blown nebensatz
-			verb = self.verbs[i]
+			verb = verbs[i]
 			stem = verb.verb.getStem()
 			form = verb.verb.get(True)[0]
 			
 			if (fromEnd != 0 and form["subj2"] == stem):
-				self.node = verbNode(verb, self.verbs[i + 1:])
+				self.node = verbNode(verb, verbs[i + 1:])
 			
 			#just to be sure -- check that the last word in the sentence is a helper or a modal
 			#Note: this has no impact on `kennen lernen` verbs as they are combined with parent / child
 			#on run, so their order doesn't really matter in nebensätze -> without a helper, they are
 			#combined, and with a helper, the fall into the below if and they are still combined
 			else:
-				lastVerb = self.verbs[self.numVerbs - 1]
+				lastVerb = verbs[numVerbs - 1]
 				if (lastVerb.verb.isModal() or lastVerb.verb.isHelper()):
-					self.node = verbNode(lastVerb, self.verbs[:self.numVerbs - 1])
+					self.node = verbNode(lastVerb, verbs[:numVerbs - 1])
 		
 		#if we weren't in a nebensatz, process as normal
 		if (self.node == None):
-			self.node = verbNode(self.verbs[i], self.verbs[i + 1:])
+			self.node = verbNode(verbs[i], verbs[i + 1:])
 		
 		self.node.process()
 		
@@ -272,29 +283,34 @@ class verbTree(object):
 		participles = []
 		
 		#instruct the tree to prune itself
-		self.node.pruneParticiples(None, participles)
+		if (self.node != None):
+			self.node.pruneParticiples(None, participles)
 		
 		return participles
 	
-	def pruneSein(self):
+	def pruneAmbiguousWords(self):
 		ret = []
-		self.node.pruneSein(ret, self)
+		if (self.node != None):
+			self.node.pruneAmbiguousWords(ret, self)
 		return ret
 		
 	def getMeanings(self):
 		meanings = []
-		self.node.appendMeanings(meanings)
+		if (self.node != None):
+			self.node.appendMeanings(meanings)
 		return meanings
 	
 	def getVerbs(self):
 		verbs = []
-		self.node.appendVerbs(verbs)
+		if (self.node != None):
+			self.node.appendVerbs(verbs)
 		return verbs
 	
 	def dump(self):
 		if (config.getboolean("deutsch", "debug")):
-			self.node.dump()
-			print
+			if (self.node != None):
+				self.node.dump()
+				print
 
 class verbNode(object):
 	doTranslations = False
@@ -384,22 +400,24 @@ class verbNode(object):
 			else:
 				self.child.pruneParticiples(self, participles)
 	
-	def pruneSein(self, ret, tree, parent = None):
+	def pruneAmbiguousWords(self, ret, tree, parent = None):
 		"""
 		"sein" can be ambiguous -- so, once we have a tense tree, we can go through and decide if sein
 		is playing a role in the sentence or if it was missclassified.
 		"""
 		
+		words = ("sein", "es", "wir")
+		
 		#if we don't have a child
 		if (self.child == None):
 			#and are just a dangling "sein"
-			if (self.tense == None and self.verb.word == "sein"):
+			if (self.tense == None and self.verb.word.lower() in words):
 				parent.child = None
 				ret.append(self.verb)
 			return
 		
 		#if we're "sein" and doing nothing to the sentence
-		if (self.verb.word == "sein" and self.tense == None and self.child.tense == None):
+		if (self.verb.word.lower() in words and self.tense == None and self.child.tense == None):
 			if (parent == None):
 				tree.node = self.child
 			else:
@@ -408,7 +426,7 @@ class verbNode(object):
 			#append the sein to our list of verbs to remove from the list of verbs
 			ret.append(self.verb)
 		
-		self.child.pruneSein(ret, tree, self)
+		self.child.pruneAmbiguousWords(ret, tree, self)
 	
 	def appendMeanings(self, meanings):
 		[meanings.append(m) for m in self.meanings]
@@ -498,7 +516,7 @@ class verbNode(object):
 			self.setTense(tenses.CONDITIONAL_PAST + " OR " + tenses.PRETERITE)
 		elif (stem == form["subj2"]):
 			self.setTense(tenses.CONDITIONAL_PAST)
-		elif (stem in (form["first"], form["third"], form["stem"])):
+		elif (stem in (form["first"], form["firstPlural"], form["second"], form["third"], form["thirdPlural"], form["stem"])):
 			self.setTense(tenses.PRESENT)
 		elif (stem == form["preterite"]):
 			self.setTense(tenses.PRETERITE)
@@ -591,7 +609,7 @@ class verbNode(object):
 		
 		if (stem == form["subj2"]):
 			self.setTense(tenses.CONDITIONAL)
-		elif (stem in (form["first"], form["third"], form["stem"])):
+		elif (stem in (form["first"], form["firstPlural"], form["second"], form["third"], form["thirdPlural"], form["stem"])):
 			self.setTense(tenses.PAST_PERFECT)
 		
 	def __translateWithModal_helper(self, parent):
@@ -692,7 +710,7 @@ class verbNode(object):
 			elif (stem == form["subj2"]):
 				self.setTense(tenses.CONDITIONAL_PAST)
 				used = True
-			elif (stem in (form["first"], form["third"], form["stem"])):
+			elif (stem in (form["first"], form["firstPlural"], form["second"], form["third"], form["thirdPlural"], form["stem"])):
 				self.setTense(tenses.PRESENT)
 				used = True
 			elif (stem == form["preterite"]):

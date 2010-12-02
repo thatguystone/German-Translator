@@ -58,6 +58,7 @@ class wordContainer(object):
 		word = re.sub(r'(\{.*\})', "", word)
 		word = re.sub(r'(\\.*\\)', "", word)
 		word = re.sub(r'(\/.*\/)', "", word)
+		word = re.sub(r'(\<.*>/)', "", word)
 		
 		word = word.replace("\"", "").replace("\'", "").strip()
 		
@@ -171,10 +172,16 @@ def go(args):
 	
 	#start 4 threads to deal with all the data
 	sema = threading.Semaphore()
+	threads = []
 	for i in range(0, 4):
 		t = lineThread()
 		t.setup(sema)
 		t.start()
+		threads.append(t)
+	
+	#wait for the processing threads to exit before we return control
+	for t in threads:
+		t.join()
 	
 def getLine(sema):
 	sema.acquire()

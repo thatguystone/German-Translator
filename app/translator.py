@@ -546,7 +546,7 @@ class verbNode(object):
 			#if we have two modals in a row, then we're doing something crazy
 			#and need to change the translation of our child verb, provided our
 			#child is not a helper with a child (ie. it's a standalone helper)
-			if (parent.verb.verb.isModal() and not (self.child.verb.isHelper() and self.child.child != None)):
+			if (parent.verb.verb.isModal() and self.child != None and not (self.child.verb.isHelper() and self.child.child != None)):
 				self.child.__translateInheritedTense_modal(parent)
 			
 			#we need to determine how to translate our child

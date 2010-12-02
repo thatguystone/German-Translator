@@ -82,8 +82,8 @@ function translate(text) {
 			var currentColor = -1;
 			var currentWord = -1;
 			var style = "";
-				
-			if (data.length == 0) {
+			
+			if (data.length == 0 || !data.sort) {
 				$table.append('<tr><td colspan="2">No translations found.</td></tr>');
 				$highlightedText.text("No translations found.");
 			} else {
@@ -114,15 +114,23 @@ function translate(text) {
 			
 			$translationBoxContainer.show();
 			
+			//adapt to the window height as it changes
+			windowHeight = $(window).height();
+			titleHeight = $title.height();
+			
+			//make the window as large as it can -- we need to calculate the height of the window without scroll bars
+			//--if there are going to be scroll bars at max height, then we calculate the height with the scroll bars
+			//  intact.  otherwise, scroll bars appear sometimes, and they throw off the height calculation when they
+			//  force some translations to new lines.  So, this just makes sure that the window sizes properly.
+			$translationsDiv.css("height", (windowHeight - titleHeight - 15) + "px");
+			$translationBox.removeClass("loading").css("height", (windowHeight) + "px");
+			$translationBoxContainer.css("height", (windowHeight - 2) + "px");
+			
 			//allow the box to be closed by clicking it
 			translationBoxBind();
 			
 			//use the calculated height for our measurements, not the css height
 			height = $translationsTable.height() + 15; //magic 15! no, it's for the padding / borders
-			titleHeight = $title.height();
-			
-			//adapt to the window height as it changes
-			windowHeight = $(window).height();
 			
 			if ((titleHeight + height) > windowHeight)
 				height = windowHeight - titleHeight - 30; //fit the popup into the window

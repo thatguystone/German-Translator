@@ -3,8 +3,6 @@ var colors = [
 ];
 
 var $title, $translationBox, $translations, $highlightedText, $translationBoxContainer, $translationsDiv, $translationsTable;
-var windowHeight, windowWidth;
-
 function verbinatorBookmarkletInit() {
 	//stop the bookmarklet from being loaded multiple times -- this probably should be in the bookmarklet loader, but meh
 	if ($("#translationBox").length > 0) {
@@ -37,16 +35,11 @@ function verbinatorBookmarkletInit() {
 	$highlightedText = $("#highlightedText");
 	$translationBoxContainer = $("#translationBox .container");
 	
-	windowWidth = $(window).width();
-	windowHeight = $(window).height();
-	
 	$("body").bind("mouseup", function(e) {
 		text = getSelectedText();
 		selectedText = text;
 		translate(text);
 	});
-
-	$translationBox.css("left", (windowWidth - $translationBox.outerWidth() - 10) + "px");
 }
 
 function translationBoxBind() {
@@ -65,6 +58,11 @@ function translate(text) {
 	if (text.length == 0)
 		return;
 	
+	
+	//adapt to the window width as it changes
+	$translationBox.css("left", ($(window).width() - $translationBox.outerWidth() - 10) + "px");
+	
+	//show that window
 	$translationBox.addClass("loading").find(".container").hide().end().show();
 	$translations.empty();
 	$highlightedText.text("loading...");
@@ -123,6 +121,9 @@ function translate(text) {
 			height = $translationsTable.height() + 15; //magic 15! no, it's for the padding / borders
 			titleHeight = $title.height();
 			
+			//adapt to the window height as it changes
+			windowHeight = $(window).height();
+			
 			if ((titleHeight + height) > windowHeight)
 				height = windowHeight - titleHeight - 30; //fit the popup into the window
 			
@@ -138,7 +139,6 @@ function dataSorter(a, b) {
 		return -1;
 	if (a.deWordLocation == b.deWordLocation)
 		return 0;
-	
 	return 1;
 }
 

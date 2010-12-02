@@ -78,6 +78,11 @@ class clauseFigurer(object):
 		if (len(tmpVerbs) == 0):
 			return []
 		
+		#lowercase the verbs -- we need this for our compares later
+		for v in tmpVerbs:
+			v.word = v.word.lower()
+			v.verb.word = v.verb.word.lower()
+		
 		#all the possible verbs in the sentence
 		possibleVerbs = [v for v in tmpVerbs if not v.verb.isPresentParticiple()]
 		
@@ -98,7 +103,7 @@ class clauseFigurer(object):
 		#
 		#do we have a separable prefix that needs re-attaching?
 		lastWord = words[len(words) - 1]
-		if (lastWord.isSeparablePrefix()):
+		if (lastWord.isSeparablePrefix() and len(possibleVerbs) > 0):
 			#attempt to see if when we add the prefix to the verb, it is still a verb
 			prefixed = word.word(lastWord.word + possibleVerbs[0].word, possibleVerbs[0].sentLoc, possibleVerbs[0].clauseLoc, possibleVerbs[0].numWords)
 			if (prefixed.isVerb()):
@@ -411,13 +416,16 @@ class verbNode(object):
 		#if we don't have a child
 		if (self.child == None):
 			#and are just a dangling "sein"
-			if (self.tense == None and self.verb.word.lower() in words):
-				parent.child = None
+			if (self.tense == None and self.verb.word in words):
+				if (parent == None):
+					tree.node = self.child
+				else:
+					parent.child = self.child
 				ret.append(self.verb)
 			return
 		
-		#if we're "sein" and doing nothing to the sentence
-		if (self.verb.word.lower() in words and self.tense == None and self.child.tense == None):
+		#if we're doing nothing to the sentence
+		if (self.verb.word in words and self.child.tense == None):
 			if (parent == None):
 				tree.node = self.child
 			else:

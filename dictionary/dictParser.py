@@ -62,6 +62,9 @@ class wordContainer(object):
 		
 		word = word.replace("\"", "").replace("\'", "").strip()
 		
+		if (word.find(",") > -1):
+			word = word.split(",")[0]
+		
 		#remove extra words from the definition
 		words = word.split(" ")
 		

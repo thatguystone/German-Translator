@@ -102,7 +102,7 @@ class word(object):
 				return False
 		
 		#"sein" is an ambiguous word -- remove it if it has any endings
-		if (self.word in ("seine", "seines", "seiner", "seinen", "seinem")):
+		if (self.word.lower() in ("seine", "seines", "seiner", "seinen", "seinem")):
 			return False
 		
 		#if we exist, then check our location in the sentence to see the likelihood of being

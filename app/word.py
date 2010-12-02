@@ -670,9 +670,12 @@ class canoo(internetInterface):
 		#in the DB)
 		if (self.isParticiple()):
 			stem, tmpForm = self.getParticipleStem()
-			#stem = self.getStem(stem)
 		
 		rows = self.__searchDB(stem)
+		
+		if (self.isParticiple() and len(rows) == 0):
+			stem = self.getStem(stem)
+			rows = self.__searchDB(stem)
 		
 		if (len(rows) == 0 and stem != self.word):
 			#it's entirely possible that we're removing verb endings too aggressively, so make a pass
@@ -705,7 +708,7 @@ class canoo(internetInterface):
 				
 				#save the word to our helper verb table
 				self.words[r["hilfsverb"]].append(tmp)
-				
+			
 	def scrapeWoxikon(self, word = None, building = False):
 		if (word != None):
 			urlWord = word

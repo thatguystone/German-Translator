@@ -133,14 +133,15 @@ class clauseFigurer(object):
 			#do our second pass on the tree, if we removed some "sein"s
 			tree.translate(translate = False)
 		
-		#add the mistaken participles to our participle list
-		participles += tree.pruneParticiples()
-		
-		[possibleVerbs.remove(v) for v in participles if v in possibleVerbs]
-		tree.build(possibleVerbs)
-		
-		#do a final pass (now that it's clean) for the actual tenses and translations
-		tree.translate(translate = True)
+		for i in (1,2):
+			#add the mistaken participles to our participle list
+			participles += tree.pruneParticiples()
+			
+			[possibleVerbs.remove(v) for v in participles if v in possibleVerbs]
+			tree.build(possibleVerbs)
+			
+			#do a final pass (now that it's clean) for the actual tenses and translations
+			tree.translate(translate = True)
 
 		#debugging dump of the tenses and nodes
 		tree.dump()
@@ -416,7 +417,7 @@ class verbNode(object):
 		
 		#do special cases on "sein"
 		words = ("sein")
-		simpleWords = words = ("es", "wir", "weit", "schon")
+		simpleWords = words = ("es", "wir", "weit", "schon", "besser")
 		
 		#if we don't have a child
 		if (self.child == None):
@@ -514,10 +515,7 @@ class verbNode(object):
 			
 			if (self.child != None):
 				#if we have a backwards modal
-				if (self.child.verb.verb.isModal()):
-					self.child.translate()
-				elif (self.tense == tenses.INFINITIVE):
-					self.child.translate()
+				self.child.translate()
 	
 	def __translateAsHelper(self):
 		#if we have a child, then we are helping the child change his tense

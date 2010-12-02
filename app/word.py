@@ -633,8 +633,6 @@ class canoo(internetInterface):
 		#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		#STUPID MYSQL BUG!!!!!!!!!!!!!!!!!!
 		if (type(rows) != bool):
-			ret += rows
-			return
 			for r in rows:
 				#this is so slow :(
 				items = r.values()

@@ -11,8 +11,6 @@ from mysql import mysql
 import translator
 import utf8
 
-import traceback
-
 class word(object):
 	"""Encapsulates a word to get all the information about it"""
 	
@@ -792,6 +790,18 @@ class canoo(internetInterface):
 			hilfsverb = "sein"
 		if (hilfsverb not in ("haben", "sein")):
 			hilfsverb = "haben"
+		
+		#					  n
+		#			|\   |  or
+		#		   _| \-/ic
+		#		  /    un
+		#		//    ~ + \
+		#	   //         |
+		#	  //    \      \
+		#	 |||     | .  .|
+		#	///     / \___/
+		#
+		# sometimes, you just have to add a unicorn to make it all make sense :(
 		
 		ret = [dict(
 			full = self.removeParens(full),

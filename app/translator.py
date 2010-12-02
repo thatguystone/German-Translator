@@ -128,7 +128,7 @@ class clauseFigurer(object):
 		#add the mistaken participles to our participle list
 		participles += tree.pruneParticiples()
 		
-		[possibleVerbs.remove(v) for v in participles]
+		[possibleVerbs.remove(v) for v in participles if v in possibleVerbs]
 		tree.build(possibleVerbs)
 		
 		#do a final pass (now that it's clean) for the actual tenses and translations
@@ -209,15 +209,15 @@ class verbTree(object):
 		to the node to figure out
 		"""
 		
+		#reset the tree for yet _another_ pass
+		self.node = None
+		
 		#we need this...a lot...
 		numVerbs = len(verbs)
 		
 		#if we have no verbs...nothing to process! yay!
 		if (numVerbs == 0):
 			return
-		
-		#reset the tree for yet _another_ pass
-		self.node = None
 		
 		#we can never start off with a participle -> that's not even a verb!
 		for i, v in zip(range(0, numVerbs), verbs):

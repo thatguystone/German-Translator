@@ -852,7 +852,12 @@ class canoo(internetInterface):
 		for l in p.find("a[href^='/services/Controller?dispatch=inflection']"):
 			label = pq(l).parent().parent().parent().prev().find("td").eq(0)
 			if (label.text().find("Verb,") > -1):
-				verbs.add(label.find("strong").text())
+				w = label.find("strong").text()
+				#stupid fix for things like: "telefoniern / telephonieren"
+				if (w.find("/") > -1):
+					verbs.update([w.strip() for w in w.split("/")])
+				else:
+					verbs.add(w)
 		
 		for v in verbs:
 			w = self.scrapeWoxikon(v)

@@ -70,7 +70,7 @@ function translate(text) {
 	translationBoxUnbind();
 	$translationBox.css("height", "35px");
 	
-	var highlighted = text.replace("-", "").split(" ");
+	var highlighted = trim(text.replace("-", "").replace("—", " "), ",.-—?!").trim().split(" ");
 	
 	$.ajax({
 		url: "http://deutsch/api",
@@ -171,3 +171,22 @@ function getSelectedText(){
 		t = document.selection.createRange().text;
 	return t;
 }
+
+function trim(s, chars) {
+	return rtrim(ltrim(s, chars), chars);
+}
+
+function ltrim(s, chars) {
+	var l=0;
+	while(l < s.length && chars.indexOf(s[l]) > -1)
+		l++;
+	return s.substring(l, s.length);
+}
+
+function rtrim(s, chars) {
+	var r=s.length -1;
+	while(r > 0 && chars.indexOf(s[r]) > -1)
+		r-=1;
+	return s.substring(0, r+1);
+}
+

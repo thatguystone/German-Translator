@@ -696,8 +696,14 @@ class canoo(internetInterface):
 				#save the word to our helper verb table
 				self.words[r["hilfsverb"]].append(tmp)
 				
-	def scrapeWoxikon(self):
-		urlWord = self.word
+	def scrapeWoxikon(self, word = None, building = False):
+		if (word != None):
+			urlWord = word
+			full = word
+		else:
+			urlWord = self.word
+			full = self.word
+		
 		for r in ((u"ß", "%C3%9F"), (u"ä", "%C3%A4"), (u"ü", "%C3%BC"), (u"ö", "%C3%B6")):
 			urlWord = urlWord.replace(r[0], r[1])
 		
@@ -718,6 +724,8 @@ class canoo(internetInterface):
 			f.close()
 			
 		if (page.find("title").eq(0).text() == "Keine Ergebnisse"):
+			if (not building):
+				return []
 			self.__stashResults([])
 			return
 		
@@ -726,14 +734,15 @@ class canoo(internetInterface):
 		
 		tbl = page.find("#verbFormsTable tr")
 		
-		full = self.word
 		stem = self.getStem(full)
 		
 		#there was an error on their end, ignore and move on
 		if (page.html().find("SQLSTATE[21000]") > -1):
-			return
+			return []
 		
 		if (tbl.eq(1).find("td").eq(0).text() == None):
+			if (not building):
+				return []
 			self.__stashResults([])
 			return
 		
@@ -751,6 +760,8 @@ class canoo(internetInterface):
 		first = self.getStem(prefix + tbl.eq(1).find("td").eq(0).text().split(" ")[0])
 		
 		if (first == prefix + "-"):
+			if (not building):
+				return []
 			self.__stashResults([])
 			return
 		
@@ -765,7 +776,7 @@ class canoo(internetInterface):
 		if (hilfsverb not in ("haben", "sein")):
 			hilfsverb = "haben"
 		
-		self.__stashResults([dict(
+		ret = [dict(
 			full = self.removeParens(full),
 			hilfsverb = self.removeParens(hilfsverb),
 			stem = self.removeParens(stem),
@@ -775,7 +786,12 @@ class canoo(internetInterface):
 			third = self.removeParens(third),
 			subj2 = self.removeParens(subj2),
 			participle = self.removeParens(participle)
-		)])
+		)]
+		
+		if (not building):
+			return ret
+		else:
+			self.__stashResults(ret)
 	
 	def removeParens(self, word):
 		if (word == None):
@@ -783,7 +799,10 @@ class canoo(internetInterface):
 		return word.replace("(", "").replace(")", "")
 		
 	def __scrapeCanoo(self):
-		"""Grabs the inflections of all verbs that match the query"""
+		"""
+		We're going to use canoo to resolve verbs to their infinitive forms, then we're going to hit
+		Woxikon to get the verb forms.
+		"""	
 		
 		if (self.hitInternet):
 			return []
@@ -804,6 +823,52 @@ class canoo(internetInterface):
 		if (failed):
 			return []
 		
+		#hit the page
+		url = unicode(self.word)
+		for c, r in zip([u'ä', u'ö', u'ü', u'ß'], ['ae', 'oe', 'ue', 'ss']): #sadiofhpaw8oenfasienfkajsdf! urls suck
+			url = url.replace(c, r)
+		
+		p = self.__getCanooPage('http://www.canoo.net/services/Controller?input=%s&service=canooNet' % urllib.quote(url.encode("utf-8")))
+		
+		#setup our results
+		ret = []
+		
+		#make sure our list of verbs is unique
+		verbs = set()
+		for l in p.find("a[href^='/services/Controller?dispatch=inflection']"):
+			label = pq(l).parent().parent().parent().prev().find("td").eq(0)
+			if (label.text().find("Verb,") > -1):
+				verbs.add(label.find("strong").text())
+		
+		for v in verbs:
+			w = self.scrapeWoxikon(v)
+			if (len(w) > 0):
+				ret += w
+		
+		return ret
+		
+	def __scrapeCanoo_hitCanoo(self):
+		"""Grabs the inflections of all verbs that match the query"""
+		
+		if (self.hitInternet):
+			return []
+		
+		self.hitInternet = True
+		
+		#first, check to see if we've failed on this search before
+		failed = self.db.query("""
+			SELECT 1 FROM `searches`
+			WHERE
+				`search`=%s
+				AND
+				`source`="canoo"
+				AND
+				`success`=0
+		""", (self.word))
+		
+		if (failed):
+			retu
+			
 		#hit the page
 		url = unicode(self.word)
 		for c, r in zip([u'ä', u'ö', u'ü', u'ß'], ['ae', 'oe', 'ue', 'ss']): #sadiofhpaw8oenfasienfkajsdf! urls suck

@@ -2,7 +2,7 @@ var colors = [
 	"FFCBAD", "FFD876", "D8E9BF", "C5D6CC", "D7BBD9", "B9FCC1"
 ];
 
-var $title, $translationBox, $translations, $highlightedText, $translationBoxContainer, $translationsDiv;
+var $title, $translationBox, $translations, $highlightedText, $translationBoxContainer, $translationsDiv, $translationsTable;
 var windowHeight, windowWidth;
 
 function verbinatorBookmarkletInit() {
@@ -33,6 +33,7 @@ function verbinatorBookmarkletInit() {
 	$translationBox = $("#translationBox");
 	$translations = $("#translations");
 	$translationsDiv = $("#translationBox .container .translation");
+	$translationsTable = $translationsDiv.find(".info");
 	$highlightedText = $("#highlightedText");
 	$translationBoxContainer = $("#translationBox .container");
 	
@@ -119,7 +120,7 @@ function translate(text) {
 			translationBoxBind();
 			
 			//use the calculated height for our measurements, not the css height
-			height = $translationsDiv.height() + 15; //magic 15! no, it's for the padding / borders
+			height = $translationsTable.height() + 15; //magic 15! no, it's for the padding / borders
 			titleHeight = $title.height();
 			
 			if ((titleHeight + height) > windowHeight)

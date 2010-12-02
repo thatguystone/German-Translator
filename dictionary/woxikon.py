@@ -28,7 +28,7 @@ def go():
 		print "Woxikon (%d - %f): %s" % (i, time.time(), v["de"])
 		i += 1
 		tmp = word.word(v["de"].lower())
-		tmp.verb.scrapeWoxikon()
+		tmp.verb.scrapeWoxikon(building=True)
 
 	#add to the searches table (with provider=canoo, success=0) for anything else
 	query = """

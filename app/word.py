@@ -607,8 +607,6 @@ class canoo(internetInterface):
 			WHERE
 				`full`=%s
 				OR
-				`stem`=%s
-				OR
 				`preterite`=%s
 				OR
 				`perfect`=%s
@@ -627,7 +625,7 @@ class canoo(internetInterface):
 				OR
 				`participle`=%s
 			;
-		""", (self.word, ) + (arg, ) * 10)
+		""", (self.word, ) * 10)
 		
 		#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		#STUPID MYSQL BUG!!!!!!!!!!!!!!!!!!
@@ -768,7 +766,7 @@ class canoo(internetInterface):
 			
 		participle = info.eq(6).find("td").eq(0).text()
 		
-		first = self.getStem(prefix + tbl.eq(1).find("td").eq(0).text().split(" ")[0])
+		first = prefix + tbl.eq(1).find("td").eq(0).text().split(" ")[0]
 		
 		if (first == prefix + "-"):
 			if (not building):
@@ -776,13 +774,14 @@ class canoo(internetInterface):
 			self.__stashResults([])
 			return
 		
-		firstPlural = self.getStem(prefix + tbl.eq(1).find("td").eq(3).text().split(" ")[0])
-		second = self.getStem(prefix + tbl.eq(1).find("td").eq(1).text().split(" ")[0])
-		third = self.getStem(prefix + tbl.eq(1).find("td").eq(2).text().split(" ")[0])
-		thirdPlural = self.getStem(prefix + tbl.eq(1).find("td").eq(4).text().split(" ")[0])
-		preterite = self.getStem(prefix + tbl.eq(2).find("td").eq(0).text().split(" ")[0])
-		perfect = self.getStem(tbl.eq(7).find("td").eq(0).text().split(" ").pop()) #already has separable part attached
-		subj2 = self.getStem(prefix + tbl.eq(6).find("td").eq(0).text().split(" ")[0])
+		firstPlural = prefix + tbl.eq(1).find("td").eq(3).text().split(" ")[0]
+		second = prefix + tbl.eq(1).find("td").eq(1).text().split(" ")[0]
+		secondPlural = prefix + tbl.eq(1).find("td").eq(1).text().split(" ")[0]
+		third = prefix + tbl.eq(1).find("td").eq(2).text().split(" ")[0]
+		thirdPlural = prefix + tbl.eq(1).find("td").eq(4).text().split(" ")[0]
+		preterite = prefix + tbl.eq(2).find("td").eq(0).text().split(" ")[0]
+		perfect = tbl.eq(7).find("td").eq(0).text().split(" ").pop() #already has separable part attached
+		subj2 = prefix + tbl.eq(6).find("td").eq(0).text().split(" ")[0]
 		
 		hilfsverb = tbl.eq(7).find("td").eq(3).text().split(" ")[0]
 		if (hilfsverb == "sind"):

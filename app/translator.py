@@ -509,7 +509,7 @@ class verbNode(object):
 	def __standAlone(self):
 		#looks like we're just a verb by our lonesome in a big, bad sentence :(
 		form = self.conjugation.verb.get(True)
-		stem = self.conjugation.verb.getStem()
+		stem = self.conjugation.verb.word
 		self.__setNormalTenses(form, stem)
 	
 	def __translateModal(self):
@@ -517,7 +517,7 @@ class verbNode(object):
 		
 		#just set our tense to the tense of our modal
 		form = self.verb.verb.get(True)[0]
-		stem = self.verb.verb.getStem()
+		stem = self.verb.verb.word
 		
 		#some modals have the same subj2 / preterite form -> I have no way to differentiate
 		if (stem == form["subj2"] and stem == form["preterite"]):
@@ -582,7 +582,7 @@ class verbNode(object):
 		"""
 		
 		form = uberParent.verb.verb.get(True)[0]
-		stem = uberParent.verb.verb.getStem()
+		stem = uberParent.verb.verb.word
 		
 		#this is the only case I can think of right now, more to come, I'm sure
 		if (form["subj2"] == stem):
@@ -600,7 +600,7 @@ class verbNode(object):
 		"""
 		
 		form = uberParent.verb.verb.get(True)[0]
-		stem = uberParent.verb.verb.getStem()
+		stem = uberParent.verb.verb.word
 		
 		#this is the only case I can think of right now, more to come, I'm sure
 		if (form["subj2"] == stem):
@@ -613,7 +613,7 @@ class verbNode(object):
 		
 	def __translateWithHelper_modal(self, parent):
 		form = parent.conjugation.verb.get(True)[0]
-		stem = parent.conjugation.verb.getStem()
+		stem = parent.conjugation.verb.word
 		
 		if (stem == form["subj2"]):
 			self.setTense(tenses.CONDITIONAL)
@@ -622,7 +622,7 @@ class verbNode(object):
 		
 	def __translateWithModal_helper(self, parent):
 		form = parent.conjugation.verb.get(True)[0]
-		stem = parent.conjugation.verb.getStem()
+		stem = parent.conjugation.verb.word
 		
 		#probably more to be added in the future
 		if (stem == form["subj2"]):
@@ -639,7 +639,7 @@ class verbNode(object):
 		if (helper["stem"] == "hab" or helper["stem"] == "sein"):
 			#it's possible that we have numerous verbs that take the same past-tense form
 			verbs = []
-			stem = self.conjugation.verb.getStem()
+			stem = self.conjugation.verb.word
 			
 			#is the verb in the right form for having a helper?
 			#check here to make sure that the entered verb is in the right past-tense form
@@ -672,7 +672,7 @@ class verbNode(object):
 		elif (helper["stem"] == "werd"
 			and self.verb.word in (word.canoo.helperHaben, word.canoo.helperSein)
 			and self.child != None
-			and self.child.conjugation.verb.getStem() == self.child.conjugation.verb.get(True)[0]["perfect"]
+			and self.child.conjugation.verb.word == self.child.conjugation.verb.get(True)[0]["perfect"]
 		):
 			self.setTense(tenses.FUTURE2_HELPER)
 			self.child.setTense(tenses.FUTURE2)

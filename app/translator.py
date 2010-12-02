@@ -436,7 +436,7 @@ class verbNode(object):
 			ret.append(self.verb)
 		
 		#cases for things that just can't be verbs
-		words = ("es", "wir")
+		words = ("es", "wir", "weit")
 		if (self.verb.word in words):
 			if (parent == None):
 				tree.node = self.child

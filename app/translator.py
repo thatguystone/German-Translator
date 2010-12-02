@@ -76,7 +76,10 @@ class clauseFigurer(object):
 		tmpVerbs = [v for v in words if v.isVerb()]
 		
 		if (len(tmpVerbs) == 0):
-			return []
+			tmpVerbs = [v for v in words if v.isVerb(ignoreLocation = True)]
+			
+			if (len(tmpVerbs) == 0):
+				return []
 		
 		#lowercase the verbs -- we need this for our compares later
 		for v in tmpVerbs:
@@ -509,9 +512,12 @@ class verbNode(object):
 		else:
 			self.__standAlone()
 			
-			#if we have a backwards modal
-			if (self.child != None and self.child.verb.verb.isModal()):
-				self.child.translate()
+			if (self.child != None):
+				#if we have a backwards modal
+				if (self.child.verb.verb.isModal()):
+					self.child.translate()
+				elif (self.tense == tenses.INFINITIVE):
+					self.child.translate()
 	
 	def __translateAsHelper(self):
 		#if we have a child, then we are helping the child change his tense
@@ -700,20 +706,21 @@ class verbNode(object):
 			#all the possible verbs (ex: gedenken + denken for gedacht)
 			for v in self.conjugation.verb.get(helper["full"]):
 				used = False
+
 				#if we're looking at an unconjugated form of the verb: sehen
-				if (conjugatedStem == v["stem"]):
-					if (helperConj == helper["subj2"]):
-						self.setTense(tenses.CONDITIONAL)
-						used = True
-					elif (helperConj in (helper["third"], helper["first"], helper["stem"])):
-						self.setTense(tenses.FUTURE)
-						used = True
-				elif (conjugatedStem == v["perfect"]):
+				if (conjugatedStem == v["perfect"]):
 					if (helperConj == helper["preterite"]):
 						self.setTense(tenses.PASSIVE_PAST)
 						used = True
 					elif (helperConj in (helper["third"], helper["first"], helper["stem"])):
 						self.setTense(tenses.PASSIVE_PRESENT)
+						used = True
+				elif (conjugatedStem == v["stem"]):
+					if (helperConj == helper["subj2"]):
+						self.setTense(tenses.CONDITIONAL)
+						used = True
+					elif (helperConj in (helper["third"], helper["first"], helper["stem"])):
+						self.setTense(tenses.FUTURE)
 						used = True
 				
 				if (used):
@@ -739,6 +746,9 @@ class verbNode(object):
 				used = True
 			elif (stem == form["preterite"]):
 				self.setTense(tenses.PRETERITE)
+				used = True
+			elif (stem.replace("zu", "") == form["stem"]):
+				self.setTense(tenses.INFINITIVE)
 				used = True
 			
 			if (used):

@@ -29,7 +29,7 @@ CREATE TABLE `searches` (
   `success` tinyint(1) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `search` (`search`,`source`,`success`)
-) ENGINE=MyISAM AUTO_INCREMENT=566429 DEFAULT CHARSET=latin1 COLLATE=latin1_german2_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=566448 DEFAULT CHARSET=latin1 COLLATE=latin1_german2_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -51,7 +51,7 @@ CREATE TABLE `translations` (
   KEY `de` (`de`),
   KEY `en_de` (`en`,`de`),
   KEY `en` (`en`)
-) ENGINE=MyISAM AUTO_INCREMENT=387573 DEFAULT CHARSET=latin1 COLLATE=latin1_german2_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=387555 DEFAULT CHARSET=latin1 COLLATE=latin1_german2_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -101,4 +101,4 @@ CREATE TABLE `verbs` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2010-12-02 13:30:02
+-- Dump completed on 2010-12-02 14:24:49

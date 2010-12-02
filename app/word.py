@@ -95,7 +95,7 @@ class word(object):
 		
 		return False
 			
-	def isVerb(self):
+	def isVerb(self, ignoreLocation = False):
 		if (self.isNoun()):
 			#make sure we're not at the beginning of a sentence -- that would be embarassing
 			if (self.clauseLoc != 0):
@@ -108,7 +108,7 @@ class word(object):
 		#if we exist, then check our location in the sentence to see the likelihood of being
 		#a verb
 		if (self.verb.exists()):
-			if (self.clauseLoc == -1 or self.numWords == -1):
+			if (ignoreLocation or self.clauseLoc == -1 or self.numWords == -1):
 				return True #not much we can do, we don't have word locations, so just use what we got from canoo
 			
 			#check its location in the sentence

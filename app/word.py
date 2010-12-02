@@ -60,9 +60,12 @@ class word(object):
 			return self.__isA("adjadv")
 	
 	def isNoun(self):
+		if (len(self.word) == 0):
+			return False
+		
 		if (self.word.isdigit()):
 			return True
-		
+			
 		#check to see if we are captalized -> nice indication we're a noun
 		if (self.word[0] >= 'A' and self.word[0] <= 'Z'):
 			return True

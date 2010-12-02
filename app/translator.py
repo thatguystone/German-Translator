@@ -47,7 +47,7 @@ class sentenceFigurer(object):
 		"""Assumes we can translate it, then runs a sentence guesser on it"""
 		
 		#remove any character that can't be used as a word
-		tmpClauses = [re.sub(u"[^a-zA-Z0-9ÄÖÜäöüß\s]*", "", r.strip()) for r in re.split("[,\.\?\!\;]*", self.query) if len(r) > 0]
+		tmpClauses = [re.sub(u"[^a-zA-Z0-9ÄÖÜäöüß\s]*", "", r.strip()) for r in re.split("[,\.\?\!\;\:]*", self.query) if len(r) > 0]
 		
 		#do a pass over the sentence to count words and stuff and stuff
 		words = []
@@ -121,8 +121,8 @@ class clauseFigurer(object):
 		ambi = tree.pruneAmbiguousWords()
 		
 		if (len(ambi) > 0):
-			[tmpVerbs.remove(v) for v in ambi]
-			[possibleVerbs.remove(v) for v in ambi]
+			[tmpVerbs.remove(v) for v in ambi if v not in tmpVerbs]
+			[possibleVerbs.remove(v) for v in ambi if v not in possibleVerbs]
 			
 			#and rebuild our tree...again
 			tree.build(possibleVerbs)
@@ -411,7 +411,8 @@ class verbNode(object):
 		is playing a role in the sentence or if it was missclassified.
 		"""
 		
-		words = ("sein", "es", "wir")
+		#do special cases on "sein"
+		words = ("sein")
 		
 		#if we don't have a child
 		if (self.child == None):
@@ -426,6 +427,17 @@ class verbNode(object):
 		
 		#if we're doing nothing to the sentence
 		if (self.verb.word in words and self.child.tense == None):
+			if (parent == None):
+				tree.node = self.child
+			else:
+				parent.child = self.child
+			
+			#append the sein to our list of verbs to remove from the list of verbs
+			ret.append(self.verb)
+		
+		#cases for things that just can't be verbs
+		word = ("es", "wir")
+		if (self.verb.word in words):
 			if (parent == None):
 				tree.node = self.child
 			else:

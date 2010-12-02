@@ -65,8 +65,8 @@ class word(object):
 			return True
 			
 		#check to see if we are captalized -> nice indication we're a noun
-		if (self.word[0] >= 'A' and self.word[0] <= 'Z'):
-			return True
+		if (not (self.word[0] >= 'A' and self.word[0] <= 'Z')):
+			return False
 		
 		isN = self.__isA("noun")
 		

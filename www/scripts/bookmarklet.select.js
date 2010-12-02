@@ -189,4 +189,3 @@ function rtrim(s, chars) {
 		r-=1;
 	return s.substring(0, r+1);
 }
-

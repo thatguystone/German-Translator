@@ -34,6 +34,8 @@ $(function() {
 		//and run our search
 		search(query);
 	}
+	
+	$query.focus();
 });
 
 var running = false;
@@ -53,12 +55,14 @@ function search(query) {
 	while (query.indexOf("  ") > -1)
 		query = query.replace("  ", " ");
 	
+	query = trim(query, ",.-—?!").trim();
+	
 	//set the value of the search box
 	$query.val(query);
 	
 	running = true;
 	
-	var highlighted = query.replace("-", "").split(" ");
+	var highlighted = query.replace("-", "").replace("—", " ").split(" ");
 	
 	$.ajax({
 		url: "/api/",
@@ -137,4 +141,22 @@ function triedSearch() {
 	if (tries >= 3) {
 		alert("Calm down.  The translation is going.  Give it some time.");
 	}
+}
+
+function trim(s, chars) {
+	return rtrim(ltrim(s, chars), chars);
+}
+
+function ltrim(s, chars) {
+	var l=0;
+	while(l < s.length && chars.indexOf(s[l]) > -1)
+		l++;
+	return s.substring(l, s.length);
+}
+
+function rtrim(s, chars) {
+	var r=s.length -1;
+	while(r > 0 && chars.indexOf(s[r]) > -1)
+		r-=1;
+	return s.substring(0, r+1);
 }

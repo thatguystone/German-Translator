@@ -413,11 +413,12 @@ class verbNode(object):
 		
 		#do special cases on "sein"
 		words = ("sein")
+		simpleWords = words = ("es", "wir", "weit", "schon")
 		
 		#if we don't have a child
 		if (self.child == None):
 			#and are just a dangling "sein"
-			if (self.tense == None and self.verb.word in words):
+			if ((self.tense == None and self.verb.word in words) or (self.verb.word in simpleWords)):
 				if (parent == None):
 					tree.node = self.child
 				else:
@@ -436,8 +437,7 @@ class verbNode(object):
 			ret.append(self.verb)
 		
 		#cases for things that just can't be verbs
-		words = ("es", "wir", "weit", "schon")
-		if (self.verb.word in words):
+		if (self.verb.word in simpleWords):
 			if (parent == None):
 				tree.node = self.child
 			else:
@@ -508,6 +508,10 @@ class verbNode(object):
 				self.child.translate()
 		else:
 			self.__standAlone()
+			
+			#if we have a backwards modal
+			if (self.child != None and self.child.verb.verb.isModal()):
+				self.child.translate()
 	
 	def __translateAsHelper(self):
 		#if we have a child, then we are helping the child change his tense

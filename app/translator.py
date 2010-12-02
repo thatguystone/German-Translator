@@ -121,8 +121,8 @@ class clauseFigurer(object):
 		ambi = tree.pruneAmbiguousWords()
 		
 		if (len(ambi) > 0):
-			[tmpVerbs.remove(v) for v in ambi if v not in tmpVerbs]
-			[possibleVerbs.remove(v) for v in ambi if v not in possibleVerbs]
+			[tmpVerbs.remove(v) for v in ambi if v in tmpVerbs]
+			[possibleVerbs.remove(v) for v in ambi if v in possibleVerbs]
 			
 			#and rebuild our tree...again
 			tree.build(possibleVerbs)
@@ -436,7 +436,7 @@ class verbNode(object):
 			ret.append(self.verb)
 		
 		#cases for things that just can't be verbs
-		word = ("es", "wir")
+		words = ("es", "wir")
 		if (self.verb.word in words):
 			if (parent == None):
 				tree.node = self.child

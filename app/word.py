@@ -11,6 +11,8 @@ from mysql import mysql
 import translator
 import utf8
 
+import traceback
+
 class word(object):
 	"""Encapsulates a word to get all the information about it"""
 	
@@ -61,6 +63,10 @@ class word(object):
 		if (self.word.isdigit()):
 			return True
 		
+		#check to see if we are captalized -> nice indication we're a noun
+		if (self.word[0] >= 'A' and self.word[0] <= 'Z'):
+			return True
+		
 		isN = self.__isA("noun")
 		
 		if (isN):
@@ -73,7 +79,7 @@ class word(object):
 				w = w[:len(w) - len(r)]
 				break
 		
-		if (w != self.word and word(w).isNoun()):
+		if (w != self.word and len(w) > 0 and word(w).isNoun()):
 			return True
 		
 		#do an umlaut replace on w -- only the first umlaut becomes normal
@@ -83,14 +89,13 @@ class word(object):
 				w = w[:i] + l.replace(u"ü", "u").replace(u"ä", "a").replace(u"ö", "o") + w[i + 1:]
 				break
 		
-		if (w != self.word and word(w).isNoun()):
+		if (w != self.word and len(w) > 0 and word(w).isNoun()):
 			return True
 		
 		return False
 			
 	def isVerb(self):
-		#check to see if we are captalized -> nice indication we're not a verb
-		if (self.isNoun() and (self.word[0] >= 'A' and self.word[0] <= 'Z')):
+		if (self.isNoun()):
 			#make sure we're not at the beginning of a sentence -- that would be embarassing
 			if (self.clauseLoc != 0):
 				return False
@@ -219,13 +224,11 @@ class cache(internetInterface):
 		sql = """
 			SELECT * FROM `translations`
 			WHERE
-				`en`=%s
-				OR
 				`de`=%s
 			;
 		"""
 		
-		rows = self.db.query(sql, (arg, ) * 2)
+		rows = self.db.query(sql, arg)
 		if (type(rows) != bool):
 			#there's a pretty horrific bug in MySQL that doesn't seem to be getting resolved
 			#any time soon -- ß = s, which is just....false...lslajsdfkjaskldfjask;ldfjsa;ldfjas;dklf

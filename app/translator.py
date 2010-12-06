@@ -506,17 +506,22 @@ class verbNode(object):
 	def translate(self):
 		if (self.verb.isHelper()):
 			self.__translateAsHelper()
+			
+			#if we don't have a tense and we don't have a child, then set our tense as normal
+			#OR: if we don't have a tense, and neither does our child, we could have something like
+			#  "ich bin toll" (sein (helper) -> tollen (helper)), then set our tense to be normal
+			#  just to be safe.
+			if (self.tense == None and (self.child == None or self.child.tense == None)):
+				self.__setNormalTenses(self.verb.verb.get(True), self.verb.verb.getStem())
 		elif (self.verb.verb.isModal()):
 			self.__translateModal()
 			if (self.child != None):
 				self.child.translate()
 		else:
 			self.__standAlone()
-			
 			if (self.child != None):
-				#if we have a backwards modal
 				self.child.translate()
-	
+
 	def __translateAsHelper(self):
 		#if we have a child, then we are helping the child change his tense
 		if (self.child != None):
@@ -655,6 +660,8 @@ class verbNode(object):
 		helperConj = parent.verb.verb.getStem()
 		helper = parent.verb.verb.get(unknownHelper = True)[0]
 		
+		
+		
 		#if we're going for simple tenses
 		if (helper["stem"] == "hab" or helper["stem"] == "sein"):
 			#it's possible that we have numerous verbs that take the same past-tense form
@@ -673,7 +680,7 @@ class verbNode(object):
 				used = False
 				
 				#process the translation into its proper output form
-				if (helperConj in (helper["third"], helper["first"], helper["stem"])):
+				if (helperConj in (helper["third"], helper["firstPlural"], helper["first"], helper["thirdPlural"], helper["stem"])):
 					self.setTense(tenses.PAST_PERFECT)
 					used = True
 				elif (helperConj == helper["subj2"]):
@@ -710,14 +717,14 @@ class verbNode(object):
 					if (helperConj == helper["preterite"]):
 						self.setTense(tenses.PASSIVE_PAST)
 						used = True
-					elif (helperConj in (helper["third"], helper["first"], helper["stem"])):
+					elif (helperConj in (helper["third"], helper["firstPlural"], helper["first"], helper["thirdPlural"], helper["stem"])):
 						self.setTense(tenses.PASSIVE_PRESENT)
 						used = True
 				elif (conjugatedStem == v["stem"]):
 					if (helperConj == helper["subj2"]):
 						self.setTense(tenses.CONDITIONAL)
 						used = True
-					elif (helperConj in (helper["third"], helper["first"], helper["stem"])):
+					elif (helperConj in (helper["third"], helper["firstPlural"], helper["first"], helper["thirdPlural"], helper["stem"])):
 						self.setTense(tenses.FUTURE)
 						used = True
 				

@@ -14,6 +14,9 @@
 	top: 10px;
 	display: none;
 }
+	#translationBox a {
+		color: #000;
+	}
 
 #translationBox.loading {
 	background-image: url(http://deutsch/images/loading.gif);

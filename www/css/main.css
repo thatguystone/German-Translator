@@ -33,6 +33,9 @@ body {
 	.content .translations {
 		font-size: 12px;
 	}
+		.content .translations a {
+			color: #000
+		}
 	.content .translations.loading {
 		background: url(/images/loading.gif) no-repeat center;
 		height: 32px;

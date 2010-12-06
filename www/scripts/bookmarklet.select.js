@@ -56,6 +56,10 @@ function verbinatorBookmarkletInit() {
 	}).disableSelection();
 }
 
+function getDictLink(word) {
+	return "<a href=\"http://dict.leo.org/ende?lp=ende&lang=de&searchLoc=0&cmpType=relaxed&sectHdr=on&spellToler=&search=" + encodeURI(word) + "\" target=\"_blank\">" + $('<div/>').text(word).html() + "</a>";
+}
+
 function translate(text) {
 	text = text.toString().trim();
 	
@@ -106,9 +110,9 @@ function translate(text) {
 					
 					orig = ""
 					if (typeof v.deOrig != "undefined")
-						orig = "(" + v.deOrig + ")";
+						orig = "(" + getDictLink(v.deOrig) + ")";
 					
-					$table.append("<tr " + style + "><td>" + v.en + "</td><td>" + v.de + " " + orig + "</td></tr>");
+					$table.append("<tr " + style + "><td>" + v.en + "</td><td>" + getDictLink(v.de) + " " + orig + "</td></tr>");
 				});
 				
 				$highlightedText.html(highlighted.join(" "));

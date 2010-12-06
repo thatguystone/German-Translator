@@ -519,8 +519,6 @@ class verbNode(object):
 				self.child.translate()
 		else:
 			self.__standAlone()
-			if (self.child != None):
-				self.child.translate()
 
 	def __translateAsHelper(self):
 		#if we have a child, then we are helping the child change his tense

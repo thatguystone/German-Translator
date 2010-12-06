@@ -502,13 +502,19 @@ class canoo(internetInterface):
 		
 		return False
 	
-	def getParticipleStem(self):
-		#remove all the adjective endings from the word
+	def getStem_participle(self):
 		w = self.word
 		for end in ("es", "en", "er", "em", "e"):
 			if (w[len(w) - len(end):] == end): #remove the end, but only once (thus, rstrip doesn't work)
 				w = w[:len(w) - len(end)]
 				break
+		
+		return w
+	
+	def getParticipleStem(self):
+		#remove all the adjective endings from the word
+		w = self.getStem_participle()
+		
 		
 		#only hit the DB if we have a different word after cleaning
 		#otherwise, use our cached stuff
@@ -665,16 +671,13 @@ class canoo(internetInterface):
 		#come in all forms, and the chances that we did a search on the exact form we have are
 		#1:6....so let's just risk it
 		
+		rows = self.__searchDB(stem)
+		
 		#if we have a participle, then let's cheat: change our stem to the stem or the participle
 		#so that we're never tempted to hit the internet (unless we genuinely don't have the verb
 		#in the DB)
-		if (self.isParticiple()):
-			stem, tmpForm = self.getParticipleStem()
-		
-		rows = self.__searchDB(stem)
-		
-		if (self.isParticiple() and len(rows) == 0):
-			stem = self.getStem(stem)
+		if (len(rows) == 0):
+			stem = self.getStem_participle()
 			rows = self.__searchDB(stem)
 		
 		if (len(rows) == 0 and stem != self.word):

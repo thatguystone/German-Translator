@@ -512,7 +512,8 @@ class verbNode(object):
 			#  "ich bin toll" (sein (helper) -> tollen (helper)), then set our tense to be normal
 			#  just to be safe.
 			if (self.tense == None and (self.child == None or self.child.tense == None)):
-				self.__setNormalTenses(self.verb.verb.get(True), self.verb.verb.getStem())
+				self.__standAlone()
+				self.child.translate()
 		elif (self.verb.verb.isModal()):
 			self.__translateModal()
 			if (self.child != None):

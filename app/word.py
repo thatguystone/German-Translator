@@ -679,6 +679,10 @@ class canoo(internetInterface):
 		if (len(rows) == 0):
 			stem = self.getStem_participle()
 			rows = self.__searchDB(stem)
+			
+			#only include the rows if they are actually from the participles
+			if (len(rows) > 0):
+				rows = [r for r in rows if stem == r["participle"] or stem == r["perfect"]]
 		
 		if (len(rows) == 0 and stem != self.word):
 			#it's entirely possible that we're removing verb endings too aggressively, so make a pass

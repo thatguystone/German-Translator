@@ -20,6 +20,14 @@ javascript:(
 			.script("http://deutsch/scripts/bookmarklet.select.js")
 			.wait(function() {
 				verbinatorBookmarkletInit();
+				
+				//handle frames
+				if (window.frames.length > 0) {
+					for (i = 0; i < window.frames.length; i++) {
+						//fake load the bookmarklet in them
+						window.frames[i].location.href = "javascript:(function() {var verbinatorBookmarklet;verbinatorBookmarklet=document.createElement('script');verbinatorBookmarklet.type='text/javascript';verbinatorBookmarklet.src='http://deutsch/scripts/bookmarklet.js';document.getElementsByTagName('head')[0].appendChild(verbinatorBookmarklet);})();";
+					}
+				}
 			});
 		}
 	}

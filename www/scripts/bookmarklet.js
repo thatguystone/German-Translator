@@ -6,24 +6,21 @@ javascript:(
 		css.rel='stylesheet';
 		css.href='http://deutsch/css/bookmarklet.css';
 		document.getElementsByTagName('head')[0].appendChild(css);
-
-		var addjQuery;
-		addjQuery=document.createElement('script');
-		addjQuery.type='text/javascript';
-		addjQuery.src='http://ajax.googleapis.com/ajax/libs/jquery/1.4.3/jquery.min.js';
-		document.getElementsByTagName('head')[0].appendChild(addjQuery);
 		
-		addjQuery.onload = function() {
-			var bookmarklet;
-			bookmarklet=document.createElement('script');
-			bookmarklet.type='text/javascript';
-			bookmarklet.language='javascript';
-			bookmarklet.src='http://deutsch/scripts/bookmarklet.select.js';
-			document.getElementsByTagName('head')[0].appendChild(bookmarklet);
-			
-			bookmarklet.onload = function() {
+		var addLabJs;
+		addLabJs=document.createElement('script');
+		addLabJs.type='text/javascript';
+		addLabJs.src='http://deutsch/scripts/LAB.js';
+		document.getElementsByTagName('head')[0].appendChild(addLabJs);
+		
+		addLabJs.onload = function() {
+			$LAB
+			.script("http://ajax.googleapis.com/ajax/libs/jquery/1.4.3/jquery.min.js").wait()
+			.script("https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.6/jquery-ui.min.js").wait()
+			.script("http://deutsch/scripts/bookmarklet.select.js")
+			.wait(function() {
 				verbinatorBookmarkletInit();
-			}
+			});
 		}
 	}
 )();

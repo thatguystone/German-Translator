@@ -28,6 +28,21 @@
 		border-radius: 9px;
 		height: 118px;
 	}
+		#translationBox .container .windowTitle {
+			background: #E2EBC2;
+			-moz-border-radius: 9px 9px 0px 0px;
+			-webkit-border-radius: 9px 9px 0px 0px;
+			border-radius: 9px 9px 0px 0px;
+			text-align: center;
+			padding: 2px 0px;
+			cursor: move;
+		}
+			#closeVerbinatorWindow {
+				float: right;
+				margin-right: 5px;
+				margin-top: 1px;
+				cursor: pointer;
+			}
 		#translationBox .container .title {
 			margin: 5px 10px;
 			border-bottom: 1px solid #000;

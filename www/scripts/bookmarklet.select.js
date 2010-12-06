@@ -11,8 +11,12 @@ function verbinatorBookmarkletInit() {
 
 	$("body").append('<div id="translationBox"> \
 		<div class="container"> \
+			<div class="windowTitle"> \
+				Verbinator Translations \
+				<img src="http://deutsch/images/close.png" id="closeVerbinatorWindow" /> \
+			</div> \
 			<div class="title"> \
-				<span class="fixed">Translation for:</span> <span id="highlightedText">test</translation> \
+				<span class="fixed">Translation for:</span> <span id="highlightedText">Loading...</span> \
 			</div> \
 			<div class="translation"> \
 				<table class="info"> \
@@ -31,6 +35,7 @@ function verbinatorBookmarkletInit() {
 	$translationBox = $("#translationBox");
 	$translations = $("#translations");
 	$translationsDiv = $("#translationBox .container .translation");
+	$windowTitle = $("#translationBox .container .windowTitle");
 	$translationsTable = $translationsDiv.find(".info");
 	$highlightedText = $("#highlightedText");
 	$translationBoxContainer = $("#translationBox .container");
@@ -40,34 +45,31 @@ function verbinatorBookmarkletInit() {
 		selectedText = text;
 		translate(text);
 	});
-}
-
-function translationBoxBind() {
-	$translationBox.click(function() {
-		$(this).hide();
+	
+	$("#closeVerbinatorWindow").click(function() {
+		$translationBox.hide();
+		$highlightedText.text("");
 	});
-}
-
-function translationBoxUnbind() {
-	$translationBox.unbind("click");
+	
+	$translationBox.draggable({
+		handle: ".container .windowTitle"
+	}).disableSelection();
 }
 
 function translate(text) {
 	text = text.toString().trim();
 	
-	if (text.length == 0)
+	if (text.length == 0 || text == $highlightedText.text())
 		return;
 	
-	
 	//adapt to the window width as it changes
-	$translationBox.css("left", ($(window).width() - $translationBox.outerWidth() - 10) + "px");
+	$translationBox.css("left", ($(window).width() - $translationBox.outerWidth() - 10) + "px").css("top", "10px");
 	
 	//show that window
 	$translationBox.addClass("loading").find(".container").hide().end().show();
 	$translations.empty();
 	$highlightedText.text("loading...");
 	//don't let the translation box be closed during loading
-	translationBoxUnbind();
 	$translationBox.css("height", "35px");
 	
 	var highlighted = trim(text.replace("-", "").replace("—", " "), ",.-—?!").trim().split(" ");
@@ -117,6 +119,7 @@ function translate(text) {
 			//adapt to the window height as it changes
 			windowHeight = $(window).height();
 			titleHeight = $title.height();
+			windowTitleHeight = $windowTitle.height();
 			
 			//make the window as large as it can -- we need to calculate the height of the window without scroll bars
 			//--if there are going to be scroll bars at max height, then we calculate the height with the scroll bars
@@ -124,20 +127,17 @@ function translate(text) {
 			//  force some translations to new lines.  So, this just makes sure that the window sizes properly.
 			$translationsDiv.css("height", (windowHeight - titleHeight - 15) + "px");
 			$translationBox.removeClass("loading").css("height", (windowHeight) + "px");
-			$translationBoxContainer.css("height", (windowHeight - 2) + "px");
-			
-			//allow the box to be closed by clicking it
-			translationBoxBind();
+			$translationBoxContainer.css("height", (windowHeight - 1) + "px");
 			
 			//use the calculated height for our measurements, not the css height
 			height = $translationsTable.height() + 15; //magic 15! no, it's for the padding / borders
 			
 			if ((titleHeight + height) > windowHeight)
-				height = windowHeight - titleHeight - 30; //fit the popup into the window
+				height = windowHeight - titleHeight - windowTitleHeight - 30; //fit the popup into the window
 			
 			$translationsDiv.css("height", (height - 15) + "px");
-			$translationBox.removeClass("loading").css("height", (titleHeight + height) + "px");
-			$translationBoxContainer.css("height", (titleHeight + height - 2) + "px");
+			$translationBox.css("height", (titleHeight + windowTitleHeight + height + 2) + "px");
+			$translationBoxContainer.css("height", (titleHeight + height + windowTitleHeight) + "px");
 		}
 	});
 }

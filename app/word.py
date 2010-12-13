@@ -268,7 +268,7 @@ class cache(internetInterface):
 			self.words.append(w)
 	
 	def __scrapeLeo(self):
-		if (self.hitInternet):
+		if (self.hitInternet or not config.getboolean("deutsch", "hitInternet")):
 			return
 		
 		self.hitInternet = True
@@ -842,7 +842,7 @@ class canoo(internetInterface):
 		Woxikon to get the verb forms.
 		"""	
 		
-		if (self.hitInternet):
+		if (self.hitInternet or not config.getboolean("deutsch", "hitInternet")):
 			return []
 		
 		self.hitInternet = True

@@ -12,3 +12,5 @@ word.verbEnd   = 4
 debug = True
 
 isCims = False
+
+hitInternet = False

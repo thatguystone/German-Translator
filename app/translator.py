@@ -82,7 +82,13 @@ class clauseFigurer(object):
 			tmpVerbs = [v for v in words if v.isVerb(ignoreLocation = True)]
 			
 			if (len(tmpVerbs) == 0):
-				return []
+				participles = []
+				meanings = []
+				[participles.append(w) for w in words if w.verb.isPastParticiple()]
+				[participles.append(w) for w in words if w not in participles and w.verb.isPresentParticiple()]
+				self.__participleMeanings(participles, meanings)
+				
+				return meanings
 		
 		#lowercase the verbs -- we need this for our compares later
 		for v in tmpVerbs:
@@ -533,6 +539,8 @@ class verbNode(object):
 				self.child.translate()
 		else:
 			self.__standAlone()
+			if (self.child != None and (self.child.verb.isHelper() or self.child.verb.verb.isModal())):
+				self.child.translate()
 
 	def __translateAsHelper(self):
 		#if we have a child, then we are helping the child change his tense

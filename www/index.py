@@ -37,7 +37,13 @@ class RequestHandler(object):
 		path = len(self.path)
 		if (path > 0 and self.path[0] == "api"):
 			ret = []
+			
 			if ("input" in self.qs):
+				if ("aggressive" in self.qs):
+					translator.beAggressive = (self.qs["aggressive"] == "1")
+				else:
+					translator.beAggressive = False
+				
 				ret = translator.translate(self.qs["input"])
 			
 			if (self.jsonp):

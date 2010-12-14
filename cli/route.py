@@ -23,6 +23,8 @@ class router:
 			else:
 				word = opts.word
 			
+			translator.beAggressive = opts.aggressive
+			
 			displayer.showResults(word, translator.translate(word))
 		
 	def setupOptions(self):
@@ -30,6 +32,10 @@ class router:
 		
 		parser = OptionParser()
 		
+		parser.add_option("-a", "--aggressive",
+			action="store_true", default=False, dest="aggressive",
+			help="be aggressive about which verbs are thrown out"
+		)
 		
 		parser.add_option("-w", "--word",
 			action="store", type="string", dest="word",

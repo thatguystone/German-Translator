@@ -5,6 +5,9 @@ from config import config
 import word
 import utf8
 
+#if we should be aggressive with what verbs we throw away
+beAggressive = False
+
 def translate(query):
 	"""Does the hefty work of translating the input"""
 	
@@ -243,7 +246,7 @@ class verbTree(object):
 		
 		#only look at it if our verb is towards the end and it's not just some short clause
 		#with the verb in 1st or 2nd position, but that still happens to be near the end
-		if ((fromEnd <= 3 and fromEnd >= 0) and verbs[i].clauseLoc >= 2):
+		if ((fromEnd <= 3 and fromEnd >= 0) and verbs[i].clauseLoc >= 3):
 			#we have a special case here: any helper in Konj2 form changes the form of the sentence
 			#so let's just do a quick check to see if we're dealing with that before we resign
 			#ourselves to a full-blown nebensatz
@@ -418,6 +421,16 @@ class verbNode(object):
 		#do special cases on "sein"
 		words = ("sein")
 		simpleWords = words = ("es", "wir", "weit", "schon", "besser")
+		
+		#remove all words from the tree that are just stems...those don't do anything for us
+		if (beAggressive):
+			tmpForms = self.verb.verb.get(True)
+			if (len(tmpForms) > 0 and self.verb.word == tmpForms[0]["stem"]):
+				if (parent == None):
+					tree.node = self.child
+				else:
+					parent.child = self.child
+				ret.append(self.verb)
 		
 		#if we don't have a child
 		if (self.child == None):

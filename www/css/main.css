@@ -20,10 +20,10 @@ body {
 			font-family: Georgia, Sans-serif;
 	}
 		.content .input input.translate {
-			width: 75%;
+			width: 100%;
 		}
 		.content .input input.magic {
-			width: 23%;
+			width: 25%;
 		}
 	
 	.content .searchPhrase span {

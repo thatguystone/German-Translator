@@ -11,7 +11,12 @@ $(function() {
 	$searchPhrase = $("#searchPhrase");
 
 	$("#translationInputs").submit(function() {
-		search($query.val());
+		search($query.val(), false);
+		return false;
+	});
+	
+	$("#darkMagic").click(function() {
+		search($query.val(), true);
 		return false;
 	});
 	
@@ -45,7 +50,7 @@ function getDictLink(word) {
 	return "<a href=\"http://dict.leo.org/ende?lp=ende&lang=de&searchLoc=0&cmpType=relaxed&sectHdr=on&spellToler=&search=" + encodeURI(word) + "\" target=\"_blank\">" + $('<div/>').text(word).html() + "</a>";
 }
 
-function search(query) {
+function search(query, darkMagic) {
 	if (running) {
 		triedSearch();
 		return;
@@ -71,7 +76,7 @@ function search(query) {
 	$.ajax({
 		url: "/api/",
 		type: "get",
-		data: {"input": query},
+		data: {"input": query, "aggressive": (darkMagic ? "1" : "0")},
 		dataType: "json",
 		beforeSend: function() {
 			$translations.addClass("loading");

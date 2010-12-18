@@ -1,5 +1,7 @@
 body {
 	background: url(../images/bg.png);
+	font-size: 14px;
+	font-family: Sans-serif;
 }
 
 .content {
@@ -18,10 +20,10 @@ body {
 			font-family: Georgia, Sans-serif;
 	}
 		.content .input input.translate {
-			width: 75%;
+			width: 100%;
 		}
 		.content .input input.magic {
-			width: 23%;
+			width: 25%;
 		}
 	
 	.content .searchPhrase span {
@@ -29,7 +31,11 @@ body {
 	}
 	
 	.content .translations {
+		font-size: 12px;
 	}
+		.content .translations a {
+			color: #000
+		}
 	.content .translations.loading {
 		background: url(../images/loading.gif) no-repeat center;
 		height: 32px;
@@ -58,7 +64,34 @@ body {
 			.content .translations table tr:last-child td[colspan] {
 				text-align: center;
 			}
+	
+	.content .bookmarklet {
+		margin-top: 25px;
+		text-align: center;
+	}
+		.content .bookmarklet .button {
+			-moz-border-radius: 6px;
+			border-radius: 6px;
+			-moz-box-shadow: 3px 2px 2px 0 rgba(0, 0, 0, 0.35);
+			box-shadow: 3px 2px 2px 0 rgba(0, 0, 0, 0.35);
+			-webkit-box-shadow: 3px 2px 2px 0 rgba(0, 0, 0, 0.35);
+			text-decoration: none;
+			background-color: #DDDDDD;
+			color: #222222;
+			cursor: move;
+			font-size: 12px;
+			font-variant: small-caps;
+			padding: 6px;
+			text-align: center;
+			width: 200px;
+		}
 		
+		.content .bookmarklet .question {
+			text-decoration: none;
+			margin-left: 5px;
+			font-size: 12px;
+		}
+	
 	.content .copyright {
 		margin-top: 50px;
 		color: #909090;

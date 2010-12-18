@@ -5,6 +5,7 @@
 	<title>Verbinator</title>
 	<link rel="stylesheet" href="css/main.css" type="text/css" />
 	<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.4.3/jquery.min.js"></script>
+	<script type="text/javascript" src="scripts/jquery.qtip-1.0.0-rc3.min.js"></script>
 	<script type="text/javascript" src="scripts/main.js"></script>
 </head>
 
@@ -17,7 +18,10 @@
 			<div>What shall we identify for you today?</div>
 			<form action="" method="get" id="translationInputs">
 				<input type="text" name="query" id="query" class="translate" />
-				<input type="submit" value="Work some magic" class="magic" />
+				<div style="text-align: center;">
+					<input type="submit" value="Work some magic" class="magic" />
+					<input type="button" id="darkMagic" value="Work some dark magic" class="magic" />
+				</div>
 			</form>
 		</div>
 		<div id="searchPhrase" class="searchPhrase">
@@ -35,6 +39,12 @@
 					</tr>
 				</tbody>
 			</table>
+		</div>
+		<div class="bookmarklet">
+			<a class="button" href="javascript:(function() {var verbinatorBookmarklet;verbinatorBookmarklet=document.createElement('script');verbinatorBookmarklet.type='text/javascript';verbinatorBookmarklet.src='http://cs.nyu.edu/~abs407/deutsch/scripts/bookmarklet.js';document.getElementsByTagName('head')[0].appendChild(verbinatorBookmarklet);})();">
+				Verbinator Bookmarklet</a>
+			<a class="question" id="bookmarkletQuestion" href="http://www.youtube.com/watch?v=QrwevUN0KdQ" target="_blank">
+				[?]</a>
 		</div>
 		<div class="copyright">
 			©2010 Andrew Stone

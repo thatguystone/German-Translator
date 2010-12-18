@@ -1,7 +1,7 @@
 var $translations, $query, $table, $searchPhrase;
 
 var colors = [
-	"FFCBAD", "FFF9B6", "D8E9BF", "C5D6CC", "D7BBD9", "B9FCC1" 
+	"FFCBAD", "FFD876", "D8E9BF", "C5D6CC", "D7BBD9", "B9FCC1" 
 ];
 
 $(function() {
@@ -9,13 +9,27 @@ $(function() {
 	$query = $("#query");
 	$table = $("#translations");
 	$searchPhrase = $("#searchPhrase");
-	
-	$query.focus();
-	
+
 	$("#translationInputs").submit(function() {
-		search($query.val());
+		search($query.val(), false);
 		return false;
 	});
+	
+	$("#darkMagic").click(function() {
+		search($query.val(), true);
+		return false;
+	});
+	
+	$('#bookmarkletQuestion').qtip({
+		content: "When you're on a German site and wish you had some verb \
+			translations handy, this is what you want.<br><br>Simply drag the \
+			bookmarklet to the left to your bookmarks toolbar, and whenever you're \
+			on a German website, click the bookmarklet to activate the translator; then \
+			all you have to do it highlight text, and you'll get instant translations.<br><br> \
+			Click the link for an example of how to create the bookmarklet.",
+		style: 'light'
+	});
+
 	
 	//get the query from the url
 	query = document.location.pathname.replace("/~abs407/deutsch", "").substring(1);
@@ -25,12 +39,18 @@ $(function() {
 		//and run our search
 		search(query);
 	}
+	
+	$query.focus();
 });
 
 var running = false;
 var tries = 0;
 
-function search(query) {
+function getDictLink(word) {
+	return "<a href=\"http://dict.leo.org/ende?lp=ende&lang=de&searchLoc=0&cmpType=relaxed&sectHdr=on&spellToler=&search=" + encodeURI(word) + "\" target=\"_blank\">" + $('<div/>').text(word).html() + "</a>";
+}
+
+function search(query, darkMagic) {
 	if (running) {
 		triedSearch();
 		return;
@@ -44,17 +64,19 @@ function search(query) {
 	while (query.indexOf("  ") > -1)
 		query = query.replace("  ", " ");
 	
+	query = trim(query, ",.-—?!").trim();
+	
 	//set the value of the search box
 	$query.val(query);
 	
 	running = true;
 	
-	var highlighted = query.replace("-", "").split(" ");
+	var highlighted = query.replace("-", "").replace("—", " ").split(" ");
 	
 	$.ajax({
-		url: "../cgi-bin/deApi.cgi/",
+		url: "api.php",
 		type: "get",
-		data: {"input": query},
+		data: {"input": query, "aggressive": (darkMagic ? "1" : "0")},
 		dataType: "json",
 		beforeSend: function() {
 			$translations.addClass("loading");
@@ -62,7 +84,7 @@ function search(query) {
 			$searchPhrase.empty();
 		},
 		success: function(data) {
-			if (data.length == 0) {
+			if (typeof data.length == "undefined" || data.length == 0) {
 				$table.append('<tr><td colspan="2">No translations found.</td></tr>');
 			} else {
 				var currentColor = -1;
@@ -84,7 +106,11 @@ function search(query) {
 						highlighted[currentWord] = "<span " + style + ">" + highlighted[currentWord] + "</span>";
 					}
 					
-					$table.append("<tr " + style + "><td>" + v.en + "</td><td>" + v.de + " (" + v.deOrig + ")</td></tr>");
+					orig = ""
+					if (typeof v.deOrig != "undefined")
+						orig = "(" + getDictLink(v.deOrig) + ")";
+					
+					$table.append("<tr " + style + "><td>" + v.en + "</td><td>" + getDictLink(v.de) + " " + orig + "</td></tr>");
 				});
 				
 				$searchPhrase.html(highlighted.join(" "));
@@ -124,4 +150,22 @@ function triedSearch() {
 	if (tries >= 3) {
 		alert("Calm down.  The translation is going.  Give it some time.");
 	}
+}
+
+function trim(s, chars) {
+	return rtrim(ltrim(s, chars), chars);
+}
+
+function ltrim(s, chars) {
+	var l=0;
+	while(l < s.length && chars.indexOf(s[l]) > -1)
+		l++;
+	return s.substring(l, s.length);
+}
+
+function rtrim(s, chars) {
+	var r=s.length -1;
+	while(r > 0 && chars.indexOf(s[r]) > -1)
+		r-=1;
+	return s.substring(0, r+1);
 }

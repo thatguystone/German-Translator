@@ -14,10 +14,6 @@ def translate(query):
 	try:
 		query = utf8.encode(query)
 		
-		#replace ae, oe, ue with ä, ö, ü
-		for i in (("ae", u"ä"), ("oe", u"ö"), ("ue", u"ü")):
-			query = query.replace(i[0], i[1])
-		
 		if (sentenceFigurer.canTranslate(query)):
 			s = sentenceFigurer(query)
 			return s.translate()
@@ -532,7 +528,8 @@ class verbNode(object):
 			#  just to be safe.
 			if (self.tense == None and (self.child == None or self.child.tense == None)):
 				self.__standAlone()
-				self.child.translate()
+				if (self.child != None):
+					self.child.translate()
 		elif (self.verb.verb.isModal()):
 			self.__translateModal()
 			if (self.child != None):

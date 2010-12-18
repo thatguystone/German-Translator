@@ -15,6 +15,8 @@ class word(object):
 	"""Encapsulates a word to get all the information about it"""
 	
 	def __init__(self, word, sentLoc = -1, clauseLoc = -1, numWords = -1):
+		word = self.doUmlauts(word)
+		
 		self.word = utf8.encode(word)
 		self.verb = canoo(self.word)
 		self.translations = cache(self.word)
@@ -25,6 +27,22 @@ class word(object):
 		self.sentLoc = sentLoc
 		self.clauseLoc = clauseLoc
 		self.numWords = numWords
+	
+	def doUmlauts(self, word):
+		#replace ae, oe, ue with ä, ö, ü
+		#but make sure we don't over-apply the rule...ugh, MySQL just gets in the way with character handling
+		tmpWord = word
+		for i in (("ae", u"ä"), ("oe", u"ö"), ("ue", u"ü")):
+			tmpWord = tmpWord.replace(i[0], i[1])
+		
+		#if we're actually working with some umlauts
+		if (tmpWord != word):
+			ret = cache(tmpWord).get()
+			if (len(ret) > 0):
+				if (tmpWord in [r["de"] for r in ret]):
+					word = tmpWord
+		
+		return word
 	
 	def exists(self):
 		return self.translations.exists() and self.verb.exists()
@@ -269,7 +287,7 @@ class cache(internetInterface):
 	
 	def __scrapeLeo(self):
 		if (self.hitInternet or not config.getboolean("deutsch", "hitInternet")):
-			return
+			return []
 		
 		self.hitInternet = True
 		

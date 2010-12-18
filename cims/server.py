@@ -3,6 +3,7 @@ import SocketServer
 
 import hacks
 import app.translator
+import app.mysql
 import config
 import simplejson as json
 
@@ -35,6 +36,9 @@ class Handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 			ret = qs["callback"][0] + "(" + ret + ")"
 		
 		self.wfile.write(ret)
+		
+		#close the database connection, otherwise it drops and things go haywire
+		app.mysql.mysql.getInstance().close()
 
 #do our config on launch
 config.do()

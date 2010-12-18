@@ -29,7 +29,11 @@ class mysql(object):
 		self.query('SET NAMES utf8;')
 		self.query('SET CHARACTER SET utf8;')
 		self.query('SET character_set_connection=utf8;')
-		
+	
+	def close(self):
+		self.__db.close()
+		mysql.__instance = None
+	
 	@classmethod
 	def getInstance(cls):
 		if (type(cls.__instance) != mysql):

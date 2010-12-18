@@ -61,8 +61,15 @@ function getDictLink(word) {
 }
 
 function translate(text) {
-	text = text.toString().trim();
+	text = text.toString();
+	text = trim(text.replace(/[^a-zA-Z0-9ÄÖÜäöüß\s\,\.\?\!\;\:]*/g, ""), ",.-—?!").trim();
+	text = text.replace(/\s/g, " "); //you're welcome, chrome -- a fix for something wrong with space characters...works fine in FireFox.
+	//remove anything greater than 1 space
+	while (text.indexOf("  ") > -1) {
+		text = text.replace("  ", " ");
+	}
 	
+	//we get alerts on all clicks on the page, so only do something if the text changes / if we have text
 	if (text.length == 0 || text == $highlightedText.text())
 		return;
 	
@@ -76,7 +83,7 @@ function translate(text) {
 	//don't let the translation box be closed during loading
 	$translationBox.css("height", "35px");
 	
-	var highlighted = trim(text.replace("-", "").replace("—", " "), ",.-—?!").trim().split(" ");
+	var highlighted = text.split(" ");
 	
 	$.ajax({
 		url: "http://cs.nyu.edu/~abs407/deutsch/api.php",

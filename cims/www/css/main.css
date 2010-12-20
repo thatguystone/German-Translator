@@ -8,10 +8,33 @@ body {
 	margin: 0px auto;
 	width: 700px;
 }
+	.content a {
+		color: #000;
+	}
+	
+	.content .centerImage {
+		margin-bottom: 10px;
+		text-align: center;
+	}
+	
 	.content .title {
 		background: url(../images/logo.png) no-repeat center;
 		height: 75px;
 	}
+	
+	.content h2 {
+		font-family: Arial;
+	}
+	
+	.content .question {
+		margin-bottom: 15px;
+	}
+	
+	.content .nav {
+		margin-top: 15px;
+		text-align: center;
+	}
+
 	.content .input {
 		margin: 50px 0px 25px;
 	}

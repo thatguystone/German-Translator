@@ -1,0 +1,204 @@
+\documentclass[12pt]{article}
+\usepackage{hyperref}
+\begin{document}
+
+\title{Verbinator - What, where, how?}
+\author{Andrew Stone}
+\renewcommand{\today}{21 December 2010}
+\maketitle
+
+\section{What?}
+
+Verbinator is, in its most basic form, a program that is capable of identifying verbs in German
+clauses and sentences, or even whole paragraphs. In each clause, it attempts to identify all of the
+verbs present, and then it figures out, based on their interactions, what tense each verb is. If the
+verb is a present or past participle, then its tense is determined solely by the form that it is in
+(ie. if it ends with a "d" or is a past participle); however, if the verb is more complex, then more
+must be done to figure out tenses.
+
+\section{Where?}
+
+Before I go into specifics about the functions of Verbinator, it is helpful to know what is where.
+
+In order to make Verbinator run on the CIMS servers, it was necessary to create some pretty ugly
+hacks for what should have otherwise worked (in other words, there is no mod\_python on the CIMS
+servers, so I had to improvise). All of the code that is CIMS-specific resides in the ``cims'' folder
+in the root of Verbinator.
+
+The database, which contains an entire German dictionary and thousands of verb conjugations, is on the
+\emph{warehouse.cims.nyu.edu} server, and it consists of three tables: \emph{verbs}, \emph{translations},
+and \emph{searches}.
+
+The configuration file, \emph{config.ini}, contains the CIMS server-specific configuration in order
+to make Verbinator run. In this file, there is a configuration option \emph{cimsServerHost}: this option
+specifies where the backend process should be run. It was necessary to create a backend process for
+Verbinator as, as I said previously, there is no mod\_python on the server (and mod\_wsgi does not
+work properly with python's MySQLdb), so rather than putting a script into the cgi-bin and waiting
+5-10 seconds for it to complete, it would run continuously on some other server and accept web requests
+for translations.  Though this is sub-optimal, it gives a turn-around time of ~200-500ms per request,
+which is, obviously, far better than making people wait on a cgi-bin request.
+
+Finally, the actual code for the application exists in the app/ directory of the Verbinator root.  Here,
+there are two main files that contain the code that does the processing: word.py and translator.py.
+Word.py is the file that contains the word class that wraps each word to be processed and is responsible
+for interfacing with the database and providing a useable interface to the translator.  The translate.py
+file is responsible for determining verb tenses.  It contains a few classes, but on the highest level,
+this is where sentences are broken down into clauses and where clauses are broken down into verb
+trees from which tenses can be determined.
+
+\section{How?}
+
+The most complicated part of the program is, naturally, its implementation.  First, we will start off
+with what is going on, in specific, with the CIMS servers, and then we will see how the application
+does its translating.
+
+\subsection{CIMS}
+
+As I mentioned, there was no reasonable way to run python on the web server at CIMS, so I created a
+web server, in python, that runs on the server specified by \emph{cimsServerHost} in the configuration
+file.  This process is started automatically on demand, and it runs as a daemon for as long as it can
+(that is, until the server is restarted, it's killed, or something goes horribly wrong).  If the server
+is ever not active, it will be started by the first request to it. To do this, two files are working
+together: \emph{api.php} and \emph{cgi-bin/startServer.cgi}. \emph{Api.php} is the file that is used as a 
+pass-through layer to the Verbinator daemon; this is done because php can be run very quickly on the
+CIMS servers, and the only thing that needs to be returned to a user via the api is some JSON, thus,
+PHP can handle a curl request and printing very easily.
+
+Where PHP fails, however, is starting the Verbinator daemon, and this is where \emph{startServer.cgi}
+comes in.  On the CIMS servers, PHP is run via mod\_php, so requests are very cheap, but due to security
+measures in place, it is not possible to run the \emph{system} command with the necessary permissions.
+To solve this, PHP sends a curl request to \emph{startServer.cgi}, which then has the necessary
+permissions to issue a command, over SSH, to \emph{cimsServerHost} to start the Verbinator daemon. Once
+the daemon is started, \emph{api.php} will be able to complete its request, and all will be right with
+the world.
+
+Finally, for CIMS, since their python installation is rather limited, there are a number of libraries
+located in the libraries/ directory of the root of Verbinator that are necessary for it to run
+properly.  These should never need to be compiled and reinstalled, but any future libraries should
+be added here, and modifications made (so that they are loadable) to the \emph{cims/hacks.py} file.
+
+
+\subsection{The Program}
+
+To say the least, Verbinator functions by heavy use of data: rather than doing contextual parsing of
+a sentence in order to identify verbs, it looks at a list of pre-defined verbs in order to determine
+if the word in question is a verb.  Rather than storing all possible conjugations and forms of a verb,
+Verbinator strips every verb of its conjugation and ending, and it uses and stores this form in the
+database for lookups.  Thus, the amount of stored data is effectively cut down to small and manageable
+subset of the total data.
+
+In order to check if a word is a verb, it goes through a multi-step process.  First, we make sure that
+the verb is not a noun: all verbs in German can be nouns, too, so we do a quick check, and if the verb
+is a noun, is capitalized, and is not the first word of a sentence (which would cause it to be capitalized),
+we disregard it.  If it is not a noun, then it could be a conjugated verb, so we strip its conjugation
+and do a lookup on the verb table.  If we find the stripped-verb in the verb table, then we get
+its infinitive form and do a lookup in the \emph{translations} table on the infinitive form.  If we find
+translations for the verb, then we know that it is a verb, and we're almost done.  At this point,
+all we have to do is check to see that the verb is not located at a random position in the sentence
+(in German, verbs come at the beginning and ends of sentences, never the middle), so we check if the
+verb fits into one of those two by some tunables called \emph{verbStart} and \emph{verbEnd}.  These
+two configuration options allow specifying the beginning and end of the acceptable range of German
+verbs in a sentence.  In theory, this is probably a bad idea; in practice, it works surprisingly well.
+
+Once we have determined if we have a verb, the next step is to see how all the verbs play together
+in the sentence.  We do numerous passes over all the verbs in order to build up a tree-like structure
+where the parent influences the tenses of children.  For this tree, we exclude all present participles
+as they do not change any tenses and stand alone.  For the first pass of the tree, we attempt to figure
+out tenses based on what we have.  Here, there might be many extra verbs in the sentence (for example,
+a mis-identified ``sein''), so we cannot stop.  The first pass allows us to get some tense information
+on the sentence, and we use this information to remove verbs that are not helping.  Before the second
+pass, we prune ambiguous words from the tree, so long as they are sitting in the tree without a tense.
+
+After the removal of ambiguous words, if there were any, we do another pass on the tree to build
+up tense information without the ambiguous words, with the hope that it will be better.  At this
+point, we're ready to do a few more passes on the sentence to remove past participles that were
+mis-identified as being attached to some helper verbs.  We run this a few times as its possible
+that there are many past participles attached to one another at the end that have no real tense
+information in the sentence.
+
+At last, we've reached the end of the construction phase.  With all the participles and ambiguous
+words cleared out, we have a tree that should, in most likelihood, be pretty accurate.  From here, 
+it's a simple matter to grab the translations and return a JSON string to the user for display.
+
+The actual workings of the tenses are very, very German-specific, so that will not be covered in depth,
+but suffice it to say, there are many special cases that had to be taken care of when dealing with the
+conjugation of modals, helper verbs, bi-modals, and the like.
+
+Lastly, there is an option in \emph{translator.py} that allows you to set it to "aggressive" mode:
+this mode merely deals a lot more harshly with ambiguous words (such as ``sein''), and removes them
+rather than hoping they fit.
+
+\subsection{The Internet}
+
+The internet was one of the primary data sources for this project.  Recently, I discovered that Wikimedia
+hosts all of its databases for download at: \url{http://download.wikimedia.org/}.  This is useful for grabbing
+verb conjugations from Wiktionary as, for the most part, they are complete.
+
+For this iteration of the project, however, this data was not used.  You'll find in the dictionary/
+directory of the Verbinator root a couple of files that deal with parsing dictionaries.  The
+\emph{dictparser.py} file contains the logic for parsing the Chemnitz dictionary, which they have
+available for download on their site, under the GPL (more information in the README in this directory).
+Also, there is a file called \emph{woxikon.py}.  This file should only be used after the dictionary
+has been built from the Chemnitz release as this will fetch from the database all the verbs, filter
+out the unique ones, and then look them up online.  This entire process requires a great deal of time
+and bandwidth, so it is probably a better idea to, in the future, write a parser for the Wiktionary
+pages that contain the verb conjugations, especially since this data is freely downloadable, without
+restrictions.
+
+Right now, the running version of Verbinator has had its internet interface disabled, and it is running
+solely from data in the database.
+
+\subsection{The Database}
+
+The last important part of Verbinator is its database. When I first started, I was using the InnoDB
+engine in MySQL to store the data, and the data was broken down so that each German word would only
+be stored once, and then each table had a one-to-many relationship with the word. The primary problem
+with this approach is that it is incredibly slow.  Each request will typically do anywhere from
+20 queries, for a simple sentence with about 10 words, to hundreds or even thousands depending on the 
+size of the input.  Therefore, query speed was essential.  Waiting around for even .5ms per query, when
+there are thousands of queries, creates a significant amount of otherwise avoidable overhead.
+
+In order to make queries run faster, it is important to realize that the data will not be updated
+often (if ever (in reality, how often do languages have dramatic changes?)), so it is not necessary
+to normalize; in fact, denormalization is better.  There will be redundancy, but it will, in practice,
+never need to be updated, so it is not a problem.
+
+Furthermore, InnoDB is definitely the wrong database engine for this task.  InnoDB provides transactions,
+row-level locking, and all sorts of other features that we simply have no use for (again, we're
+almost 100\% read-only queries), so we need none of this.  Therefore, MyISAM is the best database
+engine option for this type of project.
+
+One thing to keep in mind, however, is character sets.  MySQL makes a mess of indexes when dealing with
+``\ss'' and ``ss''. It simple stores both as ``ss'', so words like ``wei\ss'' and ``weiss`` cannot
+be stored in the same unique index. To solve this problem, you will see a lot of special casing of
+those characters around the queries.
+
+Also, keep in mind that, in German, ``\"{a} \"{o} \"{u}'' correspond to ``ae oe ue'', but the reverse
+ins't always true.  Take, for example, the German word ``bauen'': it is ``to build'', not some weird
+form that could be read as ``ba\"{u}n''. Therefore, before doing replacement of these characters,
+we must check to be sure that the word we're trying to build by replacement actually exists, otherwise,
+it should be left alone.
+
+Finally, realize that MySQL treats, in most cases, ``\"{a} \"{o} \"{u}'' as ``ae oe ue'' for lookups.
+
+\section{Caveats / Notes to the future}
+
+\begin{enumerate}
+
+\item Parsing a sentence linearly doesn't work.  Don't even try.
+\item Parsing a sentence and assuming that verbs are in the right order doesn't work.  Don't even try it.
+\item There are tons of special cases in natural languages; you will not be able to get them all.  I
+	made this mistake when starting the project: too much ambition leads to horrible code, too
+	many special cases, and nothing working.  People have been working on computer interpretation
+	of natural language for decades, and they still don't have it right.  Accept that.
+\item The guys at CIMS are great to work with, but sometimes you just have to hack it yourself.
+\item If you run into problems with character encoding in python2, welcome to the rest of the civilized
+	world (no, kidding, app.utf8 should help with that).
+
+\end{enumerate}
+
+\subsection{One last joke}
+
+You can't fail with language processing; you just find new ways of expressing yourself.
+
+\end{document}

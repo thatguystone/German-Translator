@@ -20,16 +20,20 @@ import sys, os
 
 print "Content-type: text/html\n\n"
 
-os.chdir("/home/abs407/deutsch")
-sys.path.append("/home/abs407/deutsch")
+os.chdir("/home/shasha/verbinator.d/deutsch")
+sys.path.append("/home/shasha/verbinator.d/deutsch")
 
-#load our configuration so that we know on which server to start the stuff
 import config
 config.do()
 
+#I don't know why tcsh doesn't like redirection...so just default to bash
+bash = '''"bash -c 'nohup python /home/shasha/verbinator.d/deutsch/cims/server.py < /dev/null > /dev/null 2>&1'"'''
+
 #wait for the server to spool up before we return the request
 subprocess.Popen(
-	["ssh", "doowop7.cs.nyu.edu", "ssh " + config.config.get("deutsch", "cimsServerHost") + " \"nohup python /home/abs407/deutsch/cims/server.py < /dev/null > /dev/null 2>&1\""],
+	#double ssh -- doesn't work otherwise...otherwise, ssh just complains, so double ssh to make it be quiet as the request
+	#will then be masked by another server and look like a real ssh connection, not one from a stripped-down cgi-bin
+	["ssh", "doowop7.cs.nyu.edu", "ssh", config.config.get("deutsch", "cimsServerHost") + " " + bash],
 	stdout=subprocess.PIPE,
 	stderr=subprocess.PIPE
 ).communicate()

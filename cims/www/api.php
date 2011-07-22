@@ -1,6 +1,8 @@
 <?php
 #
-# This file is part of Verbinator.
+# Copyright (c) 2010 Andrew Stone
+#
+# This file is part of of Verbinator.
 # 
 # Verbinator is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by

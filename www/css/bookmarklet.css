@@ -19,7 +19,7 @@
 	}
 
 #translationBox.loading {
-	background-image: url(http://deutsch/images/loading.gif);
+	background-image: url(http://verbinator.clovar.com/images/loading.gif);
 	background-repeat: no-repeat;
 	background-position: center center; 
 }
@@ -54,7 +54,7 @@
 				font-weight: bold;
 			}
 				#highlightedText span {
-					background: url(http://deutsch/images/translations.bg.png) repeat-x center top;
+					background: url(http://verbinator.clovar.com/images/translations.bg.png) repeat-x center top;
 				}
 		
 		#translationBox .container .translation {
@@ -71,7 +71,7 @@
 				}
 				
 				#translationBox .container .translation table.info td {
-					background: url(http://deutsch/images/translations.bg.png) repeat-x center top;
+					background: url(http://verbinator.clovar.com/images/translations.bg.png) repeat-x center top;
 					border-bottom: 1px solid #000;
 					padding: 1px 2px;
 				}

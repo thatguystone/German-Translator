@@ -1,6 +1,6 @@
 AddHandler mod_python .py
 PythonHandler ./index.py
-PythonDebug On
+PythonDebug Off
 
 RewriteEngine on
 RewriteCond %{REQUEST_FILENAME} !-f

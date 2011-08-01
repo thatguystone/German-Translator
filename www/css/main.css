@@ -12,6 +12,10 @@ body {
 		background: url(/images/logo.png) no-repeat center;
 		height: 75px;
 	}
+	.content .nav {
+		margin-top: 15px;
+		text-align: center;
+	}
 	.content .input {
 		margin: 50px 0px 25px;
 	}

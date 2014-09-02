@@ -13,7 +13,7 @@ function verbinatorBookmarkletInit() {
 		<div class="container"> \
 			<div class="windowTitle"> \
 				Verbinator Translations \
-				<img src="http://verbinator.clovar.com/images/close.png" id="closeVerbinatorWindow" /> \
+				<img src="http://verbinator.clovar.com/static/img/close.png" id="closeVerbinatorWindow" /> \
 			</div> \
 			<div class="title"> \
 				<span class="fixed">Translation for:</span> <span id="highlightedText">Loading...</span> \
@@ -30,7 +30,7 @@ function verbinatorBookmarkletInit() {
 			</div> \
 		</div> \
 	</div>');
-	
+
 	$title = $("#translationBox .title");
 	$translationBox = $("#translationBox");
 	$translations = $("#translations");
@@ -39,18 +39,18 @@ function verbinatorBookmarkletInit() {
 	$translationsTable = $translationsDiv.find(".info");
 	$highlightedText = $("#highlightedText");
 	$translationBoxContainer = $("#translationBox .container");
-	
+
 	$("body").bind("mouseup", function(e) {
 		text = getSelectedText();
 		selectedText = text;
 		translate(text);
 	});
-	
+
 	$("#closeVerbinatorWindow").click(function() {
 		$translationBox.hide();
 		$highlightedText.text("");
 	});
-	
+
 	$translationBox.draggable({
 		handle: ".container .windowTitle"
 	}).disableSelection();
@@ -62,22 +62,22 @@ function getDictLink(word) {
 
 function translate(text) {
 	text = text.toString().trim();
-	
+
 	if (text.length == 0 || text == $highlightedText.text())
 		return;
-	
+
 	//adapt to the window width as it changes
 	$translationBox.css("left", ($(window).width() - $translationBox.outerWidth() - 10) + "px").css("top", "10px");
-	
+
 	//show that window
 	$translationBox.addClass("loading").find(".container").hide().end().show();
 	$translations.empty();
 	$highlightedText.text("loading...");
 	//don't let the translation box be closed during loading
 	$translationBox.css("height", "35px");
-	
+
 	var highlighted = trim(text.replace("-", "").replace("—", " "), ",.-—?!").trim().split(" ");
-	
+
 	$.ajax({
 		url: "http://verbinator.clovar.com/api",
 		type: "get",
@@ -88,7 +88,7 @@ function translate(text) {
 			var currentColor = -1;
 			var currentWord = -1;
 			var style = "";
-			
+
 			if (data.length == 0 || !data.sort) {
 				$table.append('<tr><td colspan="2">No translations found.</td></tr>');
 				$highlightedText.text("No translations found.");
@@ -97,34 +97,34 @@ function translate(text) {
 				data.sort(dataSorter);
 				//randomize the highlight colors
 				colors.shuffle();
-				
+
 				$.each(data, function(i, v) {
 					if (currentWord == -1 || v.deWordLocation != currentWord) {
 						currentWord = v.deWordLocation;
 						currentColor = (currentColor + 1) % colors.length;
-						
+
 						style = "style=\"background-color: #" + colors[currentColor] + ";\"";
-						
+
 						highlighted[currentWord] = "<span " + style + ">" + highlighted[currentWord] + "</span>";
 					}
-					
+
 					orig = ""
 					if (typeof v.deOrig != "undefined")
 						orig = "(" + getDictLink(v.deOrig) + ")";
-					
+
 					$table.append("<tr " + style + "><td>" + v.en + "</td><td>" + getDictLink(v.de) + " " + orig + "</td></tr>");
 				});
-				
+
 				$highlightedText.html(highlighted.join(" "));
 			}
-			
+
 			$translationBoxContainer.show();
-			
+
 			//adapt to the window height as it changes
 			windowHeight = $(window).height();
 			titleHeight = $title.height();
 			windowTitleHeight = $windowTitle.height();
-			
+
 			//make the window as large as it can -- we need to calculate the height of the window without scroll bars
 			//--if there are going to be scroll bars at max height, then we calculate the height with the scroll bars
 			//  intact.  otherwise, scroll bars appear sometimes, and they throw off the height calculation when they
@@ -132,13 +132,13 @@ function translate(text) {
 			$translationsDiv.css("height", (windowHeight - titleHeight - 15) + "px");
 			$translationBox.removeClass("loading").css("height", (windowHeight) + "px");
 			$translationBoxContainer.css("height", (windowHeight - 1) + "px");
-			
+
 			//use the calculated height for our measurements, not the css height
 			height = $translationsTable.height() + 15; //magic 15! no, it's for the padding / borders
-			
+
 			if ((titleHeight + height) > windowHeight)
 				height = windowHeight - titleHeight - windowTitleHeight - 30; //fit the popup into the window
-			
+
 			$translationsDiv.css("height", (height - 15) + "px");
 			$translationBox.css("height", (titleHeight + windowTitleHeight + height + 2) + "px");
 			$translationBoxContainer.css("height", (titleHeight + height + windowTitleHeight) + "px");

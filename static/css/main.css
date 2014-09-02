@@ -1,5 +1,5 @@
 body {
-	background: url(../images/bg.png);
+	background: url(../img/bg.png);
 	font-size: 14px;
 	font-family: Sans-serif;
 }
@@ -9,7 +9,7 @@ body {
 	width: 700px;
 }
 	.content .title {
-		background: url(../images/logo.png) no-repeat center;
+		background: url(../img/logo.png) no-repeat center;
 		height: 75px;
 	}
 	.content .nav {
@@ -31,7 +31,7 @@ body {
 		}
 
 	.content .searchPhrase span {
-		background: url(../images/translations.bg.png) repeat-x center top;
+		background: url(../img/translations.bg.png) repeat-x center top;
 	}
 
 	.content .translations {
@@ -41,7 +41,7 @@ body {
 			color: #000
 		}
 	.content .translations.loading {
-		background: url(../images/loading.gif) no-repeat center;
+		background: url(../img/loading.gif) no-repeat center;
 		height: 32px;
 	}
 		.content .translations.loading table {
@@ -58,7 +58,7 @@ body {
 				padding: 5px 50px;
 			}
 			.content .translations table td {
-				background: url(../images/translations.bg.png) repeat-x;
+				background: url(../img/translations.bg.png) repeat-x;
 				border-bottom: 1px solid #000;
 				padding: 3px 10px;
 			}

@@ -1,4 +1,4 @@
-[DEFAULT]
+[bottle]
 debug = False
 hit_internet = False
 

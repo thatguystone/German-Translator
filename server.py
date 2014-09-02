@@ -49,6 +49,6 @@ def api():
 		return res
 
 if app.config['fcgi']:
-	app.run(server='flup', bindAddress=app.config['fcgi_socket'], umask=0117)
+	app.run(server='flup', bindAddress=None)
 else:
 	app.run(host='localhost', port=8777, reloader=True)

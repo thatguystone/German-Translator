@@ -1,16 +1,14 @@
-[deutsch]
-database.host = localhost
-database.user = root
-database.pass = password
-database.db = deutsch
+[DEFAULT]
+debug = False
+hit_internet = False
 
+[database]
+host = localhost
+user = root
+pass = password
+db = deutsch
+
+[word]
 ; How many words from the start / end of a setence a verb is allowed to be.
-word.verbStart = 4
-word.verbEnd   = 4
-
-; for debugging purposes on the command line
-debug = True
-
-isCims = False
-
-hitInternet = False
+verb_start = 4
+verb_end   = 4

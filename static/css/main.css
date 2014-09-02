@@ -8,33 +8,14 @@ body {
 	margin: 0px auto;
 	width: 700px;
 }
-	.content a {
-		color: #000;
-	}
-	
-	.content .centerImage {
-		margin-bottom: 10px;
-		text-align: center;
-	}
-	
 	.content .title {
 		background: url(../images/logo.png) no-repeat center;
 		height: 75px;
 	}
-	
-	.content h2 {
-		font-family: Arial;
-	}
-	
-	.content .question {
-		margin-bottom: 15px;
-	}
-	
 	.content .nav {
 		margin-top: 15px;
 		text-align: center;
 	}
-
 	.content .input {
 		margin: 50px 0px 25px;
 	}
@@ -48,11 +29,11 @@ body {
 		.content .input input.magic {
 			width: 25%;
 		}
-	
+
 	.content .searchPhrase span {
 		background: url(../images/translations.bg.png) repeat-x center top;
 	}
-	
+
 	.content .translations {
 		font-size: 12px;
 	}
@@ -87,7 +68,7 @@ body {
 			.content .translations table tr:last-child td[colspan] {
 				text-align: center;
 			}
-	
+
 	.content .bookmarklet {
 		margin-top: 25px;
 		text-align: center;
@@ -108,13 +89,13 @@ body {
 			text-align: center;
 			width: 200px;
 		}
-		
+
 		.content .bookmarklet .question {
 			text-decoration: none;
 			margin-left: 5px;
 			font-size: 12px;
 		}
-	
+
 	.content .copyright {
 		margin-top: 50px;
 		color: #909090;

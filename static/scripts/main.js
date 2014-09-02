@@ -1,7 +1,7 @@
 var $translations, $query, $table, $searchPhrase;
 
 var colors = [
-	"FFCBAD", "FFD876", "D8E9BF", "C5D6CC", "D7BBD9", "B9FCC1" 
+	"FFCBAD", "FFD876", "D8E9BF", "C5D6CC", "D7BBD9", "B9FCC1"
 ];
 
 $(function() {
@@ -14,12 +14,12 @@ $(function() {
 		search($query.val(), false);
 		return false;
 	});
-	
+
 	$("#darkMagic").click(function() {
 		search($query.val(), true);
 		return false;
 	});
-	
+
 	$('#bookmarkletQuestion').qtip({
 		content: "When you're on a German site and wish you had some verb \
 			translations handy, this is what you want.<br><br>Simply drag the \
@@ -30,16 +30,16 @@ $(function() {
 		style: 'light'
 	});
 
-	
+
 	//get the query from the url
-	query = document.location.pathname.replace("/~abs407/deutsch", "").substring(1);
-	
+	query = document.location.pathname.substring(1);
+
 	//if we have a query...
 	if (query.length > 0) {
 		//and run our search
 		search(query);
 	}
-	
+
 	$query.focus();
 });
 
@@ -55,26 +55,26 @@ function search(query, darkMagic) {
 		triedSearch();
 		return;
 	}
-	
+
 	//clean out all the tags -- thanks jQuery!
 	//throw it into a <div> so that all the text (even that outside of tags) is returned
 	query = $("<div>" + unescape(query) + "</div>").text().trim();
-	
+
 	//remove all double spaces -- keep consistent with the backend
 	while (query.indexOf("  ") > -1)
 		query = query.replace("  ", " ");
-	
+
 	query = trim(query, ",.-—?!").trim();
-	
+
 	//set the value of the search box
 	$query.val(query);
-	
+
 	running = true;
-	
+
 	var highlighted = query.replace("-", "").replace("—", " ").split(" ");
-	
+
 	$.ajax({
-		url: "api.php",
+		url: "/api",
 		type: "get",
 		data: {"input": query, "aggressive": (darkMagic ? "1" : "0")},
 		dataType: "json",
@@ -90,34 +90,34 @@ function search(query, darkMagic) {
 				var currentColor = -1;
 				var currentWord = -1;
 				var style = "";
-				
+
 				//make the translations print out in sentence order
 				data.sort(dataSorter);
 				//randomize the highlight colors
 				colors.shuffle();
-				
+
 				$.each(data, function(i, v) {
 					if (currentWord == -1 || v.deWordLocation != currentWord) {
 						currentWord = v.deWordLocation;
 						currentColor = (currentColor + 1) % colors.length;
-						
+
 						style = "style=\"background-color: #" + colors[currentColor] + ";\"";
-						
+
 						highlighted[currentWord] = "<span " + style + ">" + highlighted[currentWord] + "</span>";
 					}
-					
+
 					orig = ""
 					if (typeof v.deOrig != "undefined")
 						orig = "(" + getDictLink(v.deOrig) + ")";
-					
+
 					$table.append("<tr " + style + "><td>" + v.en + "</td><td>" + getDictLink(v.de) + " " + orig + "</td></tr>");
 				});
-				
+
 				$searchPhrase.html(highlighted.join(" "));
 			}
-			
+
 			$translations.removeClass("loading");
-			
+
 			//reset our state
 			tries = 0;
 			running = false;
@@ -130,7 +130,7 @@ function dataSorter(a, b) {
 		return -1;
 	if (a.deWordLocation == b.deWordLocation)
 		return 0;
-	
+
 	return 1;
 }
 

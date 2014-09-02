@@ -1,5 +1,0 @@
-Dependencies:
-	>= python2.4 and < python3
-	python-mysqldb
-	python-pyquery
-	python-json

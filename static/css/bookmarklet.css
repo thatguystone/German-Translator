@@ -7,9 +7,9 @@
 	-moz-border-radius: 15px;
 	-webkit-border-radius: 15px;
 	border-radius: 15px;
-	
+
 	font-size: 12px;
-	
+
 	position: fixed;
 	top: 10px;
 	display: none;
@@ -19,9 +19,9 @@
 	}
 
 #translationBox.loading {
-	background-image: url(http://verbinator.clovar.com/images/loading.gif);
+	background-image: url(../images/loading.gif);
 	background-repeat: no-repeat;
-	background-position: center center; 
+	background-position: center center;
 }
 
 	#translationBox .container {
@@ -54,9 +54,9 @@
 				font-weight: bold;
 			}
 				#highlightedText span {
-					background: url(http://verbinator.clovar.com/images/translations.bg.png) repeat-x center top;
+					background: url(../images/translations.bg.png) repeat-x center top;
 				}
-		
+
 		#translationBox .container .translation {
 			padding: 0px 15px;
 			overflow: auto;
@@ -69,22 +69,22 @@
 					font-weight: bold;
 					border-bottom: 1px solid #000;
 				}
-				
+
 				#translationBox .container .translation table.info td {
-					background: url(http://verbinator.clovar.com/images/translations.bg.png) repeat-x center top;
+					background: url(../images/translations.bg.png) repeat-x center top;
 					border-bottom: 1px solid #000;
 					padding: 1px 2px;
 				}
-				
+
 				#translationBox .container .translation table.info tr:last-child td {
 					border-bottom: 0px;
 				}
-				
+
 				#translationBox .container .translation table.info th:first-child,
 				#translationBox .container .translation table.info td:first-child {
 					border-right: 1px solid #000;
 				}
-				
+
 				#translationBox .container .translation table.info td[colspan] {
 					border-right: 0px;
 					text-align: center;

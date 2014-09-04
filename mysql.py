@@ -80,18 +80,18 @@ class mysql(object):
 
 	def query(self, sql, args = ()):
 		"""Runs a query against the database"""
-		cn = self.__db.cursor(pymysql.cursors.DictCursor)
-		suc = cn.execute(sql, args)
+		cur = self.__db.cursor(pymysql.cursors.DictCursor)
+		suc = cur.execute(sql, args)
 
 		if (not suc):
 			ret = False
 		else:
-			ret = cn.fetchall()
+			ret = cur.fetchall()
 
 			if not ret:
 				ret = False
 			elif (len(ret) == 1 and (("1" in ret[0].keys()) and ret[0]["1"] == 1L)): #special case for if we do a SELECT 1 FROM ... statement
 				ret = True
 
-		cn.close()
+		cur.close()
 		return ret

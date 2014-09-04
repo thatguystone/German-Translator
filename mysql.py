@@ -80,6 +80,7 @@ class mysql(object):
 
 	def query(self, sql, args = ()):
 		"""Runs a query against the database"""
+		self.__db.ping(reconnect=True)
 		cur = self.__db.cursor(pymysql.cursors.DictCursor)
 		suc = cur.execute(sql, args)
 

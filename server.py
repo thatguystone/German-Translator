@@ -48,6 +48,12 @@ def api():
 		bottle.response.content_type = 'application/json'
 		return res
 
+def _bool(s):
+	return str(s).lower() in ['true', '1', 't', 'y', 'yes']
+
+for k in ('fcgi', 'debug'):
+	app.config[k] = _bool(app.config.get(k, 'false'))
+
 if app.config['fcgi']:
 	app.run(server='flup', bindAddress=None)
 else:

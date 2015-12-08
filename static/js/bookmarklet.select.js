@@ -13,7 +13,7 @@ function verbinatorBookmarkletInit() {
 		<div class="container"> \
 			<div class="windowTitle"> \
 				Verbinator Translations \
-				<img src="http://verbinator.clovar.com/static/img/close.png" id="closeVerbinatorWindow" /> \
+				<img src="https://verbinator.clovar.com/static/img/close.png" id="closeVerbinatorWindow" /> \
 			</div> \
 			<div class="title"> \
 				<span class="fixed">Translation for:</span> <span id="highlightedText">Loading...</span> \
@@ -79,7 +79,7 @@ function translate(text) {
 	var highlighted = trim(text.replace("-", "").replace("—", " "), ",.-—?!").trim().split(" ");
 
 	$.ajax({
-		url: "http://verbinator.clovar.com/api",
+		url: "https://verbinator.clovar.com/api",
 		type: "get",
 		dataType: "jsonp",
 		data: "input=" + encodeURIComponent(text.toString()),
